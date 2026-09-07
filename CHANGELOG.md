@@ -17,7 +17,6 @@ Entries are written for the person upgrading: what changed for them, not which f
 - Steps see `HOTWORD_PROMPT` and `HOTWORD_TRIGGER`; `hotword run --prompt` supplies them by hand.
 - `pr-review` example: the PR, its description, checks, files, the diff without lockfiles, and the comment history filtered to unresolved threads, human conversation, and verdicts.
 
-- `yardstick` example: a measured design critique of a page against named reference sites, fired by "critique my page", "yardstick", or "does this look generic".
 
 ## 0.1.0
 

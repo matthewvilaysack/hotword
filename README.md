@@ -150,7 +150,6 @@ The `examples/` directory has four to start from:
 - `repo-status`, a generic session-start brief: branch, unpushed commits, worktrees.
 - `pr-review`, a review session in one phrase: the PR, its description, checks, the diff, and the comment history filtered to unresolved review threads, human conversation with bots dropped, and the review verdicts. Say "review pr" on a checked-out branch or "review pr 42".
 - `deploy-status`, the checkout, CI runs, and open pull requests in one phrase, with steps that skip cleanly on a machine without `gh`.
-- `yardstick`, a design critique in one phrase: "critique my page http://localhost:3000 vs stripe.com,linear.app" runs [yardstick](https://github.com/matthewvilaysack/yardstick) and hands the agent the side-by-side numbers, the key moves, and a recommended direction before it answers. With no references named it uses your first saved theme.
 
 ## Run and inspect
 
