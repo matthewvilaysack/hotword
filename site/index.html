@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>hotword</title>
+<meta name="description" content="Say a phrase to your coding agent and a workflow of shell commands runs first. hotword is a small Rust CLI that wires TOML workflows into Claude Code, Codex, and OpenCode hooks.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --asphalt: #181a1f;
+    --rain: #090a0d;
+    --panel: #20232a;
+    --wet: #2b2f37;
+    --kerb: #4b515b;
+    --dim: #8f949c;
+    --gray: #b9bec6;
+    --white: #eceff2;
+    --red: #ad2222;
+    --signal: #ff5c5c;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--rain); color-scheme: dark; }
+  body {
+    margin: 0;
+    background: var(--asphalt);
+    color: var(--gray);
+    font: 400 15px/1.65 var(--mono);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  a { color: var(--white); text-decoration: underline; text-decoration-color: var(--kerb); text-underline-offset: 3px; }
+  a:hover { text-decoration-color: var(--signal); }
+  :focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
+  code, pre { font-family: var(--mono); }
+
+  /* Static scanlines: a texture, not an animation. */
+  body::before {
+    content: "";
+    position: fixed; inset: 0; z-index: 5; pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px);
+    mix-blend-mode: multiply;
+  }
+
+  .wrap { max-width: 76ch; margin: 0 auto; padding: 0 24px; }
+
+  header.top {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 28px 0 0;
+    font-size: 13px; color: var(--dim);
+  }
+  header.top a { color: var(--dim); }
+
+  .hero { padding: 40px 0 24px; }
+  .wordmark {
+    font: 900 clamp(88px, 22vw, 200px)/0.86 var(--display);
+    letter-spacing: -0.01em;
+    color: var(--white);
+    margin: 0 0 18px -0.03em;
+    display: block;
+    white-space: nowrap;
+    cursor: default;
+  }
+  .wordmark span { display: inline-block; }
+  .wordmark b { color: var(--signal); font-weight: inherit; }
+  .lede {
+    font-size: 17px; line-height: 1.6; max-width: 60ch; color: var(--gray);
+    margin: 0 0 32px;
+  }
+  .lede em { font-style: normal; color: var(--white); }
+
+  /* The terminal is the one loud element. */
+  .term {
+    position: relative;
+    background: var(--rain);
+    border: 1px solid var(--kerb);
+    box-shadow: 0 0 0 1px var(--rain), 0 30px 60px -30px rgba(0,0,0,.9);
+    padding: 18px 20px 20px;
+    min-height: 23em;
+    overflow: hidden;
+  }
+  .term::after {
+    content: "";
+    position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(120% 80% at 50% 0%, rgba(236,239,242,.05), transparent 60%);
+  }
+  .term pre { margin: 0; white-space: pre-wrap; font-size: 14px; line-height: 1.55; color: var(--gray); }
+  .term .prompt { color: var(--dim); }
+  .term .phrase { color: var(--signal); }
+  .term .head { color: var(--white); }
+  .term .ok { color: var(--white); }
+  .term .cursor {
+    display: inline-block; width: .6em; height: 1.1em; vertical-align: -0.2em;
+    background: var(--white);
+    animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  .term .report { display: none; }
+  .term.reported .report { display: block; }
+  .term .replay {
+    position: absolute; right: 12px; top: 10px;
+    font: 500 12px var(--mono); color: var(--dim);
+    background: none; border: 1px solid var(--kerb); padding: 4px 8px; cursor: pointer;
+  }
+  .term .replay:hover { color: var(--white); border-color: var(--dim); }
+
+  .install { margin: 28px 0 0; display: grid; gap: 10px; }
+  .install pre {
+    margin: 0; padding: 12px 16px;
+    background: var(--panel); border-left: 3px solid var(--red);
+    color: var(--white); font-size: 14px; overflow-x: auto;
+  }
+  .install small { color: var(--dim); font-size: 13px; }
+
+  section { padding: 56px 0 0; }
+  h2 {
+    font: 700 34px/1 var(--display);
+    color: var(--white); margin: 0 0 18px;
+    letter-spacing: .01em;
+  }
+  p { max-width: 64ch; margin: 0 0 14px; }
+
+  ol.flow { list-style: none; margin: 0; padding: 0; counter-reset: step; display: grid; gap: 14px; }
+  ol.flow li {
+    counter-increment: step;
+    display: grid; grid-template-columns: 2.2em 1fr; gap: 12px; align-items: baseline;
+    padding: 14px 0; border-top: 1px solid var(--wet);
+  }
+  ol.flow li::before {
+    content: counter(step);
+    font: 900 26px/1 var(--display); color: var(--red);
+  }
+  ol.flow strong { color: var(--white); font-weight: 500; }
+
+  pre.file {
+    margin: 0; padding: 16px 18px;
+    background: var(--rain); border: 1px solid var(--wet);
+    font-size: 13.5px; line-height: 1.55; color: var(--gray); overflow-x: auto;
+  }
+  pre.file .k { color: var(--dim); }
+  pre.file .s { color: var(--white); }
+  pre.file .r { color: var(--signal); }
+
+  .agents { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 18px; }
+  .agents div { padding: 12px 14px; border: 1px solid var(--wet); background: var(--panel); font-size: 13.5px; }
+  .agents b { display: block; color: var(--white); font-weight: 500; margin-bottom: 4px; }
+
+  footer { margin-top: 72px; padding: 24px 0 48px; border-top: 1px solid var(--wet); font-size: 13px; color: var(--dim); }
+  footer p { margin: 0 0 6px; }
+
+  @media (max-width: 600px) {
+    .term { padding: 14px; min-height: 26em; }
+    .term pre { font-size: 12.5px; }
+    header.top { flex-direction: column; gap: 4px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .term .cursor { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <span>hotword 0.1.0, MIT</span>
+    <nav><a href="https://github.com/matthewvilaysack/hotword">source on GitHub</a></nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1 class="wordmark" id="wordmark" aria-label="hotword"><span>hot<b>word</b></span></h1>
+      <p class="lede">
+        Say a phrase to your coding agent and a workflow of shell commands runs first.
+        The report lands in the agent's context <em>before it answers</em>, so it starts from what is true instead of spending five tool calls finding out.
+      </p>
+
+      <div class="term" id="term" aria-live="polite">
+        <button class="replay" id="replay" type="button" hidden>replay</button>
+        <pre id="typed"><span class="prompt">$ </span></pre>
+        <pre class="report" id="report"><span class="head">hotword: repo-status</span>
+description: Branch, local changes, unpushed commits, and open PRs
+steps[4]{name,status,exit,ms}:
+  branch,<span class="ok">ok</span>,0,18
+  unpushed,<span class="ok">ok</span>,0,22
+  worktrees,<span class="ok">ok</span>,0,15
+  open-prs,<span class="ok">ok</span>,0,640
+
+branch:
+  ## fix-timeout-kill...origin/fix-timeout-kill [ahead 2]
+   M src/runner.rs
+
+unpushed:
+  a41c9de Kill the whole process group on timeout
+  9be0d21 Skip a step whose cwd is missing
+
+worktrees:
+  ~/code/hotword           957bf85 [main]
+  ~/code/hotword-timeout   a41c9de [fix-timeout-kill]
+
+open-prs:
+  #12  Kill the whole process group on timeout   fix-timeout-kill</pre>
+      </div>
+
+      <div class="install">
+        <pre>cargo install --git https://github.com/matthewvilaysack/hotword
+hotword install</pre>
+        <small>Registers two hooks in your agent's settings. <code>hotword uninstall</code> takes them back out and leaves everything else alone.</small>
+      </div>
+    </section>
+
+    <section>
+      <h2>Three moving parts</h2>
+      <ol class="flow">
+        <li><span><strong>A phrase you would type anyway.</strong> "repo status", "check the deploy", "where am I". Matching is a plain substring test, so <code>hotword match "..."</code> tells you exactly what fires.</span></li>
+        <li><span><strong>Steps that run in order, each on its own timeout.</strong> A step whose binary or directory is missing is skipped with the reason, not failed, so one file works across a team's mixed machines. A step past its timeout is killed along with anything it started.</span></li>
+        <li><span><strong>A compact report, capped to fit the agent's context limit.</strong> Summary table first, then each step's output, truncated with a hint for the full version. Never blocks the prompt; problems go to stderr and the exit code stays 0.</span></li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>One TOML file per workflow</h2>
+      <p>Made by the guided <code>hotword add</code> on a terminal, or by flags, or by hand.</p>
+<pre class="file"><span class="k">name</span> = <span class="s">"repo-status"</span>
+<span class="k">triggers</span> = [<span class="r">"repo status"</span>, <span class="r">"where am i"</span>]
+<span class="k">on</span> = [<span class="s">"session-start"</span>]
+
+[[steps]]
+<span class="k">name</span> = <span class="s">"branch"</span>
+<span class="k">run</span> = <span class="s">"git status --short --branch | head -30"</span>
+
+[[steps]]
+<span class="k">name</span> = <span class="s">"unpushed"</span>
+<span class="k">run</span> = <span class="s">"git log --branches --not --remotes --oneline"</span>
+
+[[steps]]
+<span class="k">name</span> = <span class="s">"open-prs"</span>
+<span class="k">run</span> = <span class="s">"gh pr list --state open --limit 10"</span>
+<span class="k">requires</span> = [<span class="s">"gh"</span>]
+<span class="k">timeout</span> = 20</pre>
+      <p style="margin-top:14px">Commit it under <code>.hotword/</code> in a repo and every teammate's agent learns the phrase on their next pull. Personal ones live in <code>~/.config/hotword/</code>; a repo's file shadows a personal one of the same name.</p>
+    </section>
+
+    <section>
+      <h2>Works with the agents you already run</h2>
+      <p>Claude Code and Codex read the same hook shape, so one installer serves both. OpenCode loads a small plugin that shells out to the same subcommands.</p>
+      <div class="agents">
+        <div><b>Claude Code</b><code>hotword install</code></div>
+        <div><b>Codex</b><code>hotword install --agent codex</code>, then trust it in <code>/hooks</code></div>
+        <div><b>OpenCode</b>copy <code>integrations/opencode/hotword.ts</code> into your plugins folder</div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Rust, zero runtime dependencies beyond a shell. 47 tests drive real commands in temp directories.</p>
+    <p>Glitch by <a href="https://github.com/7PH/powerglitch">PowerGlitch</a> (MIT). Palette from the <a href="https://github.com/OldJobobo/omarchy-city-783-theme">City-783</a> Omarchy theme.</p>
+  </footer>
+</div>
+
+<script src="vendor/powerglitch.min.js"></script>
+<script>
+(function () {
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var term = document.getElementById("term");
+  var typed = document.getElementById("typed");
+  var replay = document.getElementById("replay");
+  var wordmark = document.getElementById("wordmark");
+  var phrase = "repo status";
+  var timer = null;
+
+  // The wordmark tears once on load, then only when someone hovers it.
+  if (!reduce && window.PowerGlitch) {
+    var intro = PowerGlitch.glitch(wordmark, {
+      playMode: "manual", createContainers: true, hideOverflow: false,
+      timing: { duration: 1400, iterations: 1 },
+      glitchTimeSpan: { start: 0.1, end: 0.8 },
+      shake: { velocity: 18, amplitudeX: 0.05, amplitudeY: 0.05 },
+      slice: { count: 8, velocity: 18, minHeight: 0.02, maxHeight: 0.2, hueRotate: false },
+      pulse: false
+    });
+    intro.startGlitch();
+    setTimeout(function () {
+      intro.stopGlitch();
+      PowerGlitch.glitch(wordmark, {
+        playMode: "hover", createContainers: false, hideOverflow: false,
+        timing: { duration: 900, iterations: 1 },
+        slice: { count: 6, velocity: 15, minHeight: 0.02, maxHeight: 0.15, hueRotate: false },
+        shake: { velocity: 15, amplitudeX: 0.03, amplitudeY: 0.03 }
+      });
+    }, 1500);
+  }
+
+  function reset() {
+    clearTimeout(timer);
+    term.classList.remove("reported");
+    typed.innerHTML = '<span class="prompt">$ </span>';
+    replay.hidden = true;
+  }
+
+  function showReport() {
+    term.classList.add("reported");
+    replay.hidden = false;
+    if (reduce || !window.PowerGlitch) return;
+    var burst = PowerGlitch.glitch(term, {
+      playMode: "manual", createContainers: true, hideOverflow: true,
+      timing: { duration: 700, iterations: 1 },
+      glitchTimeSpan: { start: 0, end: 0.9 },
+      shake: { velocity: 20, amplitudeX: 0.02, amplitudeY: 0.01 },
+      slice: { count: 10, velocity: 22, minHeight: 0.01, maxHeight: 0.12, hueRotate: false },
+      pulse: false
+    });
+    burst.startGlitch();
+    setTimeout(burst.stopGlitch, 750);
+  }
+
+  function play() {
+    reset();
+    if (reduce) {
+      typed.innerHTML = '<span class="prompt">$ </span>claude\n<span class="prompt">&gt; </span><span class="phrase">' + phrase + '</span>\n';
+      showReport();
+      return;
+    }
+    var i = 0;
+    typed.innerHTML = '<span class="prompt">$ </span>claude\n<span class="prompt">&gt; </span><span class="phrase"></span><span class="cursor"></span>';
+    var target = typed.querySelector(".phrase");
+    function tick() {
+      if (i < phrase.length) {
+        target.textContent += phrase[i++];
+        timer = setTimeout(tick, 55 + Math.random() * 70);
+      } else {
+        timer = setTimeout(function () {
+          typed.querySelector(".cursor").remove();
+          typed.appendChild(document.createTextNode("\n"));
+          showReport();
+        }, 500);
+      }
+    }
+    timer = setTimeout(tick, 900);
+  }
+
+  replay.addEventListener("click", play);
+  play();
+})();
+</script>
+</body>
+</html>
