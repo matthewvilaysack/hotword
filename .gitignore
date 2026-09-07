@@ -1,1 +1,6 @@
 target/
+site/banner.png
+site/banner.svg
+node_modules/
+.cache/
+.vercel

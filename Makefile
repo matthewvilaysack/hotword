@@ -1,4 +1,4 @@
-.PHONY: build lint lint-fix test format format-check install
+.PHONY: build lint lint-fix test format format-check install banner
 
 build:
 	cargo build --release
@@ -26,3 +26,7 @@ install:
 	@mkdir -p $(HOME)/.config/hotword
 	@test -f $(HOME)/.config/hotword/apple-status.toml || cp examples/apple-status.toml $(HOME)/.config/hotword/apple-status.toml
 	$(HOME)/.cargo/bin/hotword
+
+# The banner PNG is rendered from site/banner.svg, never edited by hand.
+banner:
+	bun scripts/build-banner.mjs

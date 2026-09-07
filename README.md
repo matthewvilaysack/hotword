@@ -1,6 +1,6 @@
 # hotword
 
-![hotword: say the phrase, the shell runs first](site/banner.png)
+![hotword: say the phrase, the shell runs first](https://matthewvilaysack.github.io/hotword/banner.svg)
 
 Type a phrase to your coding agent and a workflow of shell commands runs, with the results dropped into the agent's context before it answers.
 Say "apple check status" and the agent already knows the CLI version, the auth state, the unpushed commits, and the open PRs, instead of spending five tool calls finding out.
@@ -172,3 +172,4 @@ make format-check
 Zero runtime configuration beyond the TOML files.
 `HOTWORD_HOME` overrides the user workflow directory, which is how the tests stay isolated.
 Releases are annotated tags; `docs/releasing.md` has the four steps and what the workflow enforces.
+The banner is generated: `bun scripts/build-banner.mjs` turns the wordmark and taglines into paths and writes `site/banner.svg` with the CSS tear, and `scripts/render-banner.sh` screenshots it mid-tear for the social preview. The Pages deploy runs both; `make banner` does the same locally.

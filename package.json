@@ -1,0 +1,8 @@
+{
+  "name": "hotword-site-tools",
+  "private": true,
+  "devDependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "opentype.js": "1.3.4"
+  }
+}
