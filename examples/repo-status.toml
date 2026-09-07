@@ -1,0 +1,21 @@
+# A generic repo brief. Runs at session start and whenever you type "repo status".
+name = "repo-status"
+description = "Branch, local changes, unpushed commits, and worktrees for this checkout"
+triggers = ["repo status", "where am i"]
+on = ["session-start"]
+
+[[steps]]
+name = "branch"
+run = "git status --short --branch | head -30"
+
+[[steps]]
+name = "recent"
+run = "git log --oneline -5"
+
+[[steps]]
+name = "unpushed"
+run = "git log --branches --not --remotes --oneline | head -20"
+
+[[steps]]
+name = "worktrees"
+run = "git worktree list"

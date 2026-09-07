@@ -1,0 +1,41 @@
+# Copy to ~/.config/hotword/ (or a repo's .hotword/) and adjust the paths.
+# Steps whose binary or directory is missing are skipped, so this is safe to
+# share with a teammate who has only some of the tools installed.
+name = "apple-status"
+description = "Where maps-cli and its checkout stand right now"
+triggers = ["apple check status", "apple status", "maps-cli status"]
+timeout = 20
+
+[[steps]]
+name = "version"
+run = "maps-cli --version"
+
+[[steps]]
+name = "plugins"
+run = "maps-cli plugins doctor"
+
+[[steps]]
+name = "auth"
+run = "maps-cli auth status"
+timeout = 10
+
+[[steps]]
+name = "branch"
+run = "git status --short --branch | head -20"
+cwd = "~/code/nucleus"
+
+[[steps]]
+name = "unpushed"
+run = "git log --branches --not --remotes --oneline | head -20"
+cwd = "~/code/nucleus"
+
+[[steps]]
+name = "worktrees"
+run = "git worktree list"
+cwd = "~/code/nucleus"
+
+[[steps]]
+name = "open-prs"
+run = "GH_HOST=github.geo.apple.com gh pr list --repo maps-data-platform/maps-cli --state open --limit 10"
+requires = ["gh"]
+timeout = 20
