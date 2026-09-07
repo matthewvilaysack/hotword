@@ -60,6 +60,17 @@ fn event_loop(
                 RunEvent::Done(name, report) => state.finish(&name, report),
             }
         }
+        if let Some(name) = state.wants_doctor.take() {
+            if let (Some(loaded), Some(report)) = (
+                state.all.iter().find(|l| l.workflow.name == name),
+                state.report(&name),
+            ) {
+                let text =
+                    crate::doctor::render_text(&crate::doctor::diagnose(&loaded.workflow, report));
+                state.doctor.insert(name, text);
+                state.report_scroll = 0;
+            }
+        }
         if state.wants_refresh {
             state.wants_refresh = false;
             match store.load_all() {
@@ -163,6 +174,7 @@ fn to_action(key: KeyEvent, mode: Mode) -> Option<Action> {
         KeyCode::Char('p') => Action::StartPrompt,
         KeyCode::Char('/') => Action::StartFilter,
         KeyCode::Char('R') => Action::Refresh,
+        KeyCode::Char('d') => Action::Doctor,
         KeyCode::Char('?') => Action::Help,
         _ => return None,
     })

@@ -38,6 +38,7 @@ pub enum Action {
     Cancel,
     Help,
     Refresh,
+    Doctor,
     Quit,
 }
 
@@ -54,7 +55,10 @@ pub struct State {
     pub report_scroll: usize,
     pub should_quit: bool,
     pub wants_refresh: bool,
+    pub wants_doctor: Option<String>,
     pub message: Option<String>,
+    /// Doctor output for a workflow, shown in the report panel until the next run.
+    pub doctor: BTreeMap<String, String>,
     cursor: usize,
     running: HashSet<String>,
     partial: BTreeMap<String, Vec<StepResult>>,
@@ -72,7 +76,9 @@ impl State {
             report_scroll: 0,
             should_quit: false,
             wants_refresh: false,
+            wants_doctor: None,
             message: None,
+            doctor: BTreeMap::new(),
             cursor: 0,
             running: HashSet::new(),
             partial: BTreeMap::new(),
@@ -144,6 +150,7 @@ impl State {
     pub fn finish(&mut self, name: &str, report: Report) {
         self.running.remove(name);
         self.partial.remove(name);
+        self.doctor.remove(name);
         self.reports.insert(name.to_string(), report);
     }
 
@@ -198,6 +205,16 @@ impl State {
             }
             Action::Help => self.mode = Mode::Help,
             Action::Refresh => self.wants_refresh = true,
+            Action::Doctor => {
+                if let Some(name) = self.selected().map(|l| l.workflow.name.clone()) {
+                    if self.report(&name).is_none() {
+                        self.message =
+                            Some(format!("run {name} first, then d explains what failed"));
+                    } else {
+                        self.wants_doctor = Some(name);
+                    }
+                }
+            }
             Action::Quit => self.should_quit = true,
             Action::Type(_) | Action::Backspace | Action::Confirm => {}
         }

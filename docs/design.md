@@ -52,4 +52,4 @@ flowchart LR
 
 ## Verification
 
-`make test` runs 49 tests that execute real shell commands in temp directories, including a timeout that must kill a grandchild `sleep`, an install into a settings file that already has other hooks, and the hook subcommand fed the exact JSON the agents send. The negative checks: a non-matching prompt yields empty stdout, broken stdin exits 0 with a stderr note, and `--strict` turns a failed step into exit 1.
+`make test` runs 68 tests that execute real shell commands in temp directories, including a timeout that must kill a grandchild `sleep`, an install into a settings file that already has other hooks, and the hook subcommand fed the exact JSON the agents send. The negative checks: a non-matching prompt yields empty stdout, broken stdin exits 0 with a stderr note, and `--strict` turns a failed step into exit 1.

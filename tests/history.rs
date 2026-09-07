@@ -2,7 +2,6 @@
 //! with a note when `dolt` is not on PATH, so `make test` stays honest on a
 //! machine without it.
 
-
 use hotword::history::History;
 use hotword::runner::{Report, Status, StepResult};
 

@@ -101,6 +101,29 @@ pub fn run_streaming(
     run_inner(workflow, base_dir, prompt, &trigger, on_step)
 }
 
+/// Runs one named step alone, with the same environment a full run would give
+/// it, and returns a one-step report. `None` when no step has that name.
+pub fn run_only(
+    workflow: &Workflow,
+    step_name: &str,
+    base_dir: &Path,
+    prompt: &str,
+) -> Option<Report> {
+    let step = workflow.steps.iter().find(|s| s.name == step_name)?;
+    let trigger = workflow
+        .triggers
+        .iter()
+        .find(|t| workflow.matches_trigger(t, prompt))
+        .cloned()
+        .unwrap_or_default();
+    Some(Report {
+        workflow: workflow.name.clone(),
+        description: workflow.description.clone(),
+        max_lines: workflow.max_lines,
+        steps: vec![run_step(step, workflow.timeout, base_dir, prompt, &trigger)],
+    })
+}
+
 fn run_inner(
     workflow: &Workflow,
     base_dir: &Path,

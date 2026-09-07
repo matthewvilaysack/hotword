@@ -35,6 +35,8 @@ enum Cmd {
     Ui,
     /// Run a workflow now and print its report
     Run(RunArgs),
+    /// Run a workflow (or one step) and explain each failure with fixes
+    Doctor(DoctorArgs),
     /// Print a workflow's TOML
     Show { name: String },
     /// Create a workflow (interactive when no --step is given on a terminal)
@@ -79,6 +81,20 @@ struct RunArgs {
     /// Text to expose to steps as HOTWORD_PROMPT, as if it had fired the workflow
     #[arg(long)]
     prompt: Option<String>,
+}
+
+#[derive(Args)]
+struct DoctorArgs {
+    name: String,
+    /// Run only this step, with the full output
+    #[arg(long)]
+    step: Option<String>,
+    /// Text to expose to steps as HOTWORD_PROMPT
+    #[arg(long)]
+    prompt: Option<String>,
+    /// Emit JSON instead of text
+    #[arg(long)]
+    json: bool,
 }
 
 #[derive(Args)]
@@ -178,6 +194,7 @@ fn dispatch(command: Option<Cmd>) -> Result<ExitCode> {
             Ok(ExitCode::SUCCESS)
         }
         Some(Cmd::Run(args)) => run(&store_for(&cwd), &cwd, args),
+        Some(Cmd::Doctor(args)) => doctor(&store_for(&cwd), &cwd, args),
         Some(Cmd::Show { name }) => show(&store_for(&cwd), &name),
         Some(Cmd::Add(args)) => add(&store_for(&cwd), args),
         Some(Cmd::Edit { name }) => edit(&store_for(&cwd), &name),
@@ -332,6 +349,41 @@ fn run(store: &Store, cwd: &Path, args: RunArgs) -> Result<ExitCode> {
     } else {
         ExitCode::SUCCESS
     })
+}
+
+fn doctor(store: &Store, cwd: &Path, args: DoctorArgs) -> Result<ExitCode> {
+    let loaded = require(store, &args.name)?;
+    let prompt = args.prompt.clone().unwrap_or_default();
+    let report = match &args.step {
+        Some(step) => runner::run_only(&loaded.workflow, step, cwd, &prompt).ok_or_else(|| {
+            anyhow!(
+                "no step named {step} in {}; it has: {}",
+                args.name,
+                loaded
+                    .workflow
+                    .steps
+                    .iter()
+                    .map(|s| s.name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        })?,
+        None => runner::run_for_prompt(&loaded.workflow, cwd, &prompt),
+    };
+    let diagnosis = crate::doctor::diagnose(&loaded.workflow, &report);
+    if args.json {
+        println!("{}", serde_json::to_string_pretty(&diagnosis)?);
+    } else {
+        print!("{}", crate::doctor::render_text(&diagnosis));
+        if args.step.is_none() {
+            if let Some(first) = &diagnosis.first_problem {
+                println!("help[2]:");
+                println!("  Run `hotword doctor {} --step {first}` to rerun just that step with full output", args.name);
+                println!("  Run `hotword edit {}` to change it", args.name);
+            }
+        }
+    }
+    Ok(ExitCode::SUCCESS)
 }
 
 fn show(store: &Store, name: &str) -> Result<ExitCode> {

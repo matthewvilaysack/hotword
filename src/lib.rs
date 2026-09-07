@@ -1,4 +1,5 @@
 pub mod cli;
+pub mod doctor;
 pub mod history;
 pub mod hooks;
 pub mod interactive;

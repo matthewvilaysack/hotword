@@ -156,15 +156,48 @@ The `examples/` directory has four to start from:
 
 ```sh
 hotword                        # list workflows, where they live, what fires them
+hotword ui                     # the terminal interface, see below
 hotword run apple-status       # run one now
 hotword run apple-status --json
 hotword run apple-status --full
 hotword run apple-status --strict   # exit 1 if any step failed, for CI
+hotword run pr-review --prompt "review pr 42"
 hotword match "hey apple check status"   # which workflows would fire
 hotword show apple-status
 hotword edit apple-status      # opens $EDITOR, re-validates on save
 hotword remove apple-status
+hotword list --json            # the listing for other front ends
+hotword save < workflow.toml   # validate and write a workflow from stdin
 ```
+
+### Debug a broken workflow
+
+```sh
+hotword doctor apple-status
+hotword doctor apple-status --step open-prs   # rerun one step with full output
+```
+
+`doctor` runs the workflow, then gives every step a verdict with the cause in plain words and the fixes to try: a tool missing from PATH, a `cwd` that does not exist here, a command that wants `gh auth login`, a host it could not reach, a grep that exited 1 because it found nothing, a step that hit its timeout.
+It names the step to start with; fix that one, rerun just that step, move to the next.
+The same diagnosis is behind `d` in `hotword ui` and the Debug button in the Mac app.
+
+### The terminal interface
+
+`hotword ui` is a lazygit-shaped view: workflows and their steps on the left, the report on the right, keys along the bottom.
+`enter` runs, `p` runs with a prompt, `d` explains the last run's failures, `/` filters, `e` opens the file in `$EDITOR`, `?` lists everything.
+Runs stream in step by step.
+
+### Run history with Dolt
+
+```sh
+hotword history init           # once; needs dolt on PATH
+hotword history                # the last 20 runs, any workflow
+hotword history changes repo-status   # steps that changed since the previous run
+```
+
+Once initialised, every `hotword run` and every hook run becomes a commit in a [Dolt](https://github.com/dolthub/dolt) repository under `~/.config/hotword/history`: a `runs` table, a `steps` table, and a `latest` table per workflow.
+`changes` uses Dolt's own diff of `latest`, so "what moved since yesterday's status check" is one command.
+`dolt log`, `dolt diff`, and `dolt sql` work in that directory, and `dolt remote add` plus `dolt push` share the whole record with a team.
 
 A run report looks like this:
 
@@ -212,7 +245,7 @@ Reference: [Claude Code hooks](https://code.claude.com/docs/en/hooks). Codex use
 ## Develop
 
 ```sh
-make test            # 49 tests, runs real shell commands in temp dirs
+make test            # 68 tests, runs real shell commands in temp dirs
 make lint            # clippy with warnings as errors
 make format-check
 ```

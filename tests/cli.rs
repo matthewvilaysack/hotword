@@ -422,7 +422,9 @@ fn save_reads_toml_from_stdin_validates_and_writes_it() {
         "{}",
         out(&output)
     );
-    assert!(fs::read_to_string(&path).unwrap().contains("name = \"from-app\""));
+    assert!(fs::read_to_string(&path)
+        .unwrap()
+        .contains("name = \"from-app\""));
 
     let again = sb.run_in(
         &sb.repo(),
@@ -494,5 +496,51 @@ fn history_records_runs_once_initialised_and_lists_changes() {
     assert!(
         none.contains("changes: fewer than two runs of never-ran recorded"),
         "{none}"
+    );
+}
+
+#[test]
+fn doctor_runs_the_workflow_and_prints_guided_fixes() {
+    let sb = Sandbox::new();
+    let output = sb.run(&[
+        "add",
+        "broken",
+        "--trigger",
+        "broken",
+        "--step",
+        "tool: definitely-not-a-binary-xyz --flag",
+        "--step",
+        "quiet: grep zzz /dev/null",
+        "--step",
+        "fine: echo ok",
+    ]);
+    assert!(output.status.success(), "{}", out(&output));
+    let text = out(&sb.run(&["doctor", "broken"]));
+    assert!(text.contains("doctor: broken"), "{text}");
+    assert!(text.contains("problems: 2 of 3 steps"), "{text}");
+    assert!(text.contains("steps[3]{name,status,verdict}:"), "{text}");
+    assert!(text.contains("tool,skip,missing-tool"), "{text}");
+    assert!(text.contains("quiet,fail,silent-failure"), "{text}");
+    assert!(text.contains("fine,ok,healthy"), "{text}");
+    assert!(text.contains("start with: tool"), "{text}");
+    assert!(text.contains("fix:"), "{text}");
+
+    let json: serde_json::Value =
+        serde_json::from_str(&out(&sb.run(&["doctor", "broken", "--json"]))).unwrap();
+    assert_eq!(json["steps"][0]["verdict"], "missing-tool");
+    assert_eq!(json["first_problem"], "tool");
+
+    let one = out(&sb.run(&["doctor", "broken", "--step", "fine", "--json"]));
+    let json: serde_json::Value = serde_json::from_str(&one).unwrap();
+    assert_eq!(json["steps"].as_array().unwrap().len(), 1);
+    assert_eq!(json["steps"][0]["name"], "fine");
+    assert_eq!(json["steps"][0]["output"].as_str().unwrap().trim(), "ok");
+
+    let missing = sb.run(&["doctor", "broken", "--step", "nope"]);
+    assert_eq!(missing.status.code(), Some(1));
+    assert!(
+        out(&missing).contains("error: no step named nope"),
+        "{}",
+        out(&missing)
     );
 }

@@ -240,6 +240,8 @@ fn draw_report(frame: &mut Frame, area: Rect, state: &State) {
                     || line.contains("(exit ")
                 {
                     theme::signal()
+                } else if line.trim_start().starts_with("fix:") || line.starts_with("start with:") {
+                    theme::key()
                 } else if line.starts_with("help:") || line.contains("skipped,") {
                     theme::dim()
                 } else {
@@ -329,6 +331,7 @@ fn draw_help(frame: &mut Frame, area: Rect) {
         ("tab, l / h", "next / previous panel"),
         ("enter", "run the selected workflow"),
         ("p", "run it with a prompt (HOTWORD_PROMPT)"),
+        ("d", "doctor: explain the last run's failures, with fixes"),
         ("/", "filter by name or phrase"),
         ("e", "open the workflow file in $EDITOR"),
         ("R", "reload workflows from disk"),
