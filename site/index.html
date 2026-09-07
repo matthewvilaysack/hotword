@@ -153,23 +153,6 @@
   .agents div { padding: 12px 14px; border: 1px solid var(--wet); background: var(--panel); font-size: 13.5px; }
   .agents b { display: block; color: var(--white); font-weight: 500; margin-bottom: 4px; }
 
-  .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 18px; }
-  .plan { border: 1px solid var(--wet); background: var(--panel); padding: 18px 18px 16px; display: grid; gap: 8px; align-content: start; }
-  .plan.lift { border-color: var(--red); }
-  .plan h3 { margin: 0; font: 700 26px/1 var(--display); color: var(--white); letter-spacing: .01em; }
-  .plan .price { font: 500 22px/1.2 var(--mono); color: var(--white); }
-  .plan .price small { font-size: 13px; color: var(--dim); font-weight: 400; }
-  .plan ul { margin: 4px 0 0; padding-left: 18px; font-size: 13.5px; }
-  .plan li { margin: 2px 0; }
-  .plan a.cta {
-    margin-top: 8px; justify-self: start;
-    background: var(--red); color: var(--white); text-decoration: none;
-    padding: 8px 12px; font: 500 13px var(--mono);
-  }
-  .plan a.cta:hover { background: var(--signal); color: var(--rain); }
-  .plan a.cta.quiet { background: none; border: 1px solid var(--kerb); color: var(--white); }
-  .plan a.cta.quiet:hover { border-color: var(--signal); background: none; color: var(--white); }
-  .fine { font-size: 13px; color: var(--dim); margin-top: 14px; }
   footer { margin-top: 72px; padding: 24px 0 48px; border-top: 1px solid var(--wet); font-size: 13px; color: var(--dim); }
   footer p { margin: 0 0 6px; }
 
@@ -187,7 +170,7 @@
 <div class="wrap">
   <header class="top">
     <span>hotword 0.2.0, MIT</span>
-    <nav><a href="/docs">Docs</a> &nbsp; <a href="#mac">Mac app</a> &nbsp; <a href="https://github.com/matthewvilaysack/hotword">source on GitHub</a></nav>
+    <nav><a href="/docs">Docs</a> &nbsp; <a href="https://github.com/matthewvilaysack/hotword">source on GitHub</a></nav>
   </header>
 
   <main>
@@ -274,43 +257,6 @@ hotword install</pre>
       </div>
     </section>
 
-    <section id="mac">
-      <h2>hotword for Mac</h2>
-      <p>The command line tool is free and stays free. The Mac app is the paid part: a menu bar home for your workflows, so people who never open a terminal still get the phrases.</p>
-      <div class="plans">
-        <div class="plan">
-          <h3>Command line</h3>
-          <div class="price">Free <small>MIT, forever</small></div>
-          <ul>
-            <li>Every feature on this page</li>
-            <li>Claude Code, Codex, OpenCode</li>
-            <li>Workflows shared through git</li>
-          </ul>
-          <a class="cta quiet" href="https://github.com/matthewvilaysack/hotword/releases">Download a release</a>
-        </div>
-        <div class="plan lift">
-          <h3>Personal</h3>
-          <div class="price">$29 <small>one purchase, yours to keep</small></div>
-          <ul>
-            <li>Menu bar app with one-click runs and a report window</li>
-            <li>Project folder picker, hooks installed with a button</li>
-            <li>14-day trial, then a key that works offline</li>
-          </ul>
-          <a class="cta" href="mailto:topdogmatthew@gmail.com?subject=hotword%20for%20Mac%2C%20personal&amp;body=I%27d%20like%20early%20access%20to%20hotword%20for%20Mac.">Get early access</a>
-        </div>
-        <div class="plan">
-          <h3>Team</h3>
-          <div class="price">$149 <small>10 seats</small></div>
-          <ul>
-            <li>Everything in Personal</li>
-            <li>One key for the team, no per-person sign-up</li>
-            <li>Priority on workflow requests</li>
-          </ul>
-          <a class="cta quiet" href="mailto:topdogmatthew@gmail.com?subject=hotword%20for%20Mac%2C%20team&amp;body=We%27d%20like%20a%20team%20key%20for%20hotword%20for%20Mac.">Ask for a team key</a>
-        </div>
-      </div>
-      <p class="fine">Early access is by email while the store is being set up. Keys are signed offline and never phone home. The app talks to the same free command line tool, so nothing you build for it is locked in.</p>
-    </section>
   </main>
 
   <footer>

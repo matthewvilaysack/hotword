@@ -14,7 +14,7 @@ No guessing which commands exist, no five tool calls to rediscover the state of 
 | **2. Steps** | Shell commands run in order, each on its own timeout, skipped with a reason when a tool is missing | `[[steps]]` in one TOML file |
 | **3. Context** | A compact report handed to Claude Code, Codex, or OpenCode through their hook contract | `hotword hook prompt`, `hotword hook session-start` |
 
-**Start here:** [Site](https://hotword-dusky.vercel.app) | [Docs](https://hotword-dusky.vercel.app/docs) | [Design](https://hotword-dusky.vercel.app/docs/design) | [Releasing](https://hotword-dusky.vercel.app/docs/releasing) | [Changelog](https://hotword-dusky.vercel.app/docs/changelog) | [Mac app](https://hotword-dusky.vercel.app/#mac)
+**Start here:** [Site](https://hotword-dusky.vercel.app) | [Docs](https://hotword-dusky.vercel.app/docs) | [Design](https://hotword-dusky.vercel.app/docs/design) | [Releasing](https://hotword-dusky.vercel.app/docs/releasing) | [Changelog](https://hotword-dusky.vercel.app/docs/changelog)
 
 ## Quick start
 
