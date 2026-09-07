@@ -1,4 +1,4 @@
-.PHONY: build lint lint-fix test format format-check
+.PHONY: build lint lint-fix test format format-check install
 
 build:
 	cargo build --release
@@ -17,3 +17,12 @@ format:
 
 format-check:
 	cargo fmt --check
+
+# One-shot setup on a new machine: build, register the Claude Code hooks, and
+# seed the apple-status workflow if there is not one already.
+install:
+	cargo install --path . --locked
+	$(HOME)/.cargo/bin/hotword install
+	@mkdir -p $(HOME)/.config/hotword
+	@test -f $(HOME)/.config/hotword/apple-status.toml || cp examples/apple-status.toml $(HOME)/.config/hotword/apple-status.toml
+	$(HOME)/.cargo/bin/hotword

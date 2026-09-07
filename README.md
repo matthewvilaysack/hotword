@@ -11,6 +11,12 @@ A repo can commit its own under `.hotword/`, which is how a whole team ends up w
 ## Install
 
 ```sh
+make install               # cargo install, register the Claude Code hooks, seed apple-status
+```
+
+Or piece by piece:
+
+```sh
 cargo install --path .
 hotword install            # registers the hooks in ~/.claude/settings.json
 hotword install --agent codex
@@ -21,7 +27,11 @@ hotword install --agent codex
 `hotword uninstall` takes the hooks back out and leaves everything else in the file alone.
 
 Codex asks you to trust new hooks: open `/hooks` in Codex after installing.
-OpenCode uses JavaScript plugins rather than command hooks, so there is no installer for it; a plugin that shells out to `hotword hook prompt` and feeds the `additionalContext` field back is all it needs.
+
+OpenCode uses JavaScript plugins rather than command hooks.
+Copy `integrations/opencode/hotword.ts` to `~/.config/opencode/plugins/` (or a repo's `.opencode/plugins/`).
+It appends a matching workflow's report to the user message and carries session-start reports in the system prompt.
+The plugin typechecks against the published plugin types but has not been run inside OpenCode yet.
 
 ## Define a workflow
 
