@@ -68,10 +68,27 @@ const BUILTINS: &[&str] = &[
 ];
 
 pub fn run(workflow: &Workflow, base_dir: &Path) -> Report {
+    run_inner(workflow, base_dir, "", "")
+}
+
+/// Like `run`, but steps also see the prompt that fired the workflow as
+/// `HOTWORD_PROMPT` and the matching phrase as `HOTWORD_TRIGGER`, so a step
+/// can pull a PR number or a branch name out of what the person typed.
+pub fn run_for_prompt(workflow: &Workflow, base_dir: &Path, prompt: &str) -> Report {
+    let trigger = workflow
+        .triggers
+        .iter()
+        .find(|t| workflow.matches_trigger(t, prompt))
+        .cloned()
+        .unwrap_or_default();
+    run_inner(workflow, base_dir, prompt, &trigger)
+}
+
+fn run_inner(workflow: &Workflow, base_dir: &Path, prompt: &str, trigger: &str) -> Report {
     let steps = workflow
         .steps
         .iter()
-        .map(|step| run_step(step, workflow.timeout, base_dir))
+        .map(|step| run_step(step, workflow.timeout, base_dir, prompt, trigger))
         .collect();
     Report {
         workflow: workflow.name.clone(),
@@ -81,7 +98,13 @@ pub fn run(workflow: &Workflow, base_dir: &Path) -> Report {
     }
 }
 
-fn run_step(step: &Step, default_timeout: u64, base_dir: &Path) -> StepResult {
+fn run_step(
+    step: &Step,
+    default_timeout: u64,
+    base_dir: &Path,
+    prompt: &str,
+    trigger: &str,
+) -> StepResult {
     let result = |status, exit, ms, output, reason: Option<String>| StepResult {
         name: step.name.clone(),
         status,
@@ -121,6 +144,8 @@ fn run_step(step: &Step, default_timeout: u64, base_dir: &Path) -> StepResult {
         .arg("-c")
         .arg(format!("{{ {}\n}} 2>&1", step.run))
         .current_dir(&cwd)
+        .env("HOTWORD_PROMPT", prompt)
+        .env("HOTWORD_TRIGGER", trigger)
         .process_group(0)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())

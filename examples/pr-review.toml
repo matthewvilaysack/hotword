@@ -1,0 +1,83 @@
+# Load a pull request and its review history so the agent can answer
+# questions about the code with the reviewers' context already in hand.
+#
+# Say "review pr" on a checked-out branch, or "review pr 42" to name one.
+# Steps read the number out of HOTWORD_PROMPT and fall back to the branch's PR.
+# Comments are filtered: unresolved review threads first, then human
+# conversation with bots dropped, then the review verdicts. Lockfiles,
+# minified bundles, and snapshots are dropped from the diff.
+name = "pr-review"
+description = "The PR, its diff, checks, and the comment history filtered to what still matters"
+triggers = ["review pr", "pr review", "pr qna", "questions about the pr"]
+timeout = 30
+max_lines = 120
+
+[[steps]]
+name = "pr"
+run = """
+n=$(printf '%s' "$HOTWORD_PROMPT" | grep -oE '#?[0-9]+' | head -1 | tr -d '#')
+gh pr view ${n:+"$n"} --json number,title,author,state,baseRefName,headRefName,url,additions,deletions,changedFiles \
+  --jq '"#\\(.number) \\(.title)\\nby \\(.author.login), \\(.state), \\(.headRefName) -> \\(.baseRefName)\\n\\(.url)\\n+\\(.additions) -\\(.deletions) across \\(.changedFiles) files"'
+"""
+
+[[steps]]
+name = "description"
+run = """
+n=$(printf '%s' "$HOTWORD_PROMPT" | grep -oE '#?[0-9]+' | head -1 | tr -d '#')
+gh pr view ${n:+"$n"} --json body --jq '.body' | head -60
+"""
+
+[[steps]]
+name = "checks"
+run = """
+n=$(printf '%s' "$HOTWORD_PROMPT" | grep -oE '#?[0-9]+' | head -1 | tr -d '#')
+gh pr checks ${n:+"$n"} 2>&1 | head -20
+"""
+
+[[steps]]
+name = "unresolved-threads"
+run = """
+n=$(printf '%s' "$HOTWORD_PROMPT" | grep -oE '#?[0-9]+' | head -1 | tr -d '#')
+num=${n:-$(gh pr view --json number --jq .number)}
+repo=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+gh api graphql -F owner="${repo%/*}" -F name="${repo#*/}" -F pr="$num" -f query='
+  query($owner:String!,$name:String!,$pr:Int!){ repository(owner:$owner,name:$name){ pullRequest(number:$pr){
+    reviewThreads(first:100){ nodes{ isResolved isOutdated path line
+      comments(first:20){ nodes{ author{login} body } } } } } } }' \
+  --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved|not)
+        | "\\(.path):\\(.line // "?")\\(if .isOutdated then " (outdated)" else "" end)",
+          (.comments.nodes[] | "  \\(.author.login): \\(.body | gsub("\\n"; " ") | .[:300])"), ""'
+"""
+
+[[steps]]
+name = "conversation"
+run = """
+n=$(printf '%s' "$HOTWORD_PROMPT" | grep -oE '#?[0-9]+' | head -1 | tr -d '#')
+num=${n:-$(gh pr view --json number --jq .number)}
+gh api "repos/{owner}/{repo}/issues/$num/comments?per_page=100" \
+  --jq '.[] | select(.user.type != "Bot") | "\\(.user.login) (\\(.created_at[:10])): \\(.body | gsub("\\n"; " ") | .[:400])"' | tail -20
+"""
+
+[[steps]]
+name = "verdicts"
+run = """
+n=$(printf '%s' "$HOTWORD_PROMPT" | grep -oE '#?[0-9]+' | head -1 | tr -d '#')
+num=${n:-$(gh pr view --json number --jq .number)}
+gh api "repos/{owner}/{repo}/pulls/$num/reviews?per_page=100" \
+  --jq '.[] | select(.user.type != "Bot" and .state != "COMMENTED") | "\\(.user.login): \\(.state) (\\(.submitted_at[:10]))"'
+"""
+
+[[steps]]
+name = "files"
+run = """
+n=$(printf '%s' "$HOTWORD_PROMPT" | grep -oE '#?[0-9]+' | head -1 | tr -d '#')
+gh pr diff ${n:+"$n"} --name-only
+"""
+
+[[steps]]
+name = "diff"
+run = '''
+n=$(printf '%s' "$HOTWORD_PROMPT" | grep -oE '#?[0-9]+' | head -1 | tr -d '#')
+gh pr diff ${n:+"$n"} --color=never | awk '/^diff --git/ { skip = ($3 ~ /(Cargo|package|bun|pnpm|yarn|uv|poetry|Gemfile|composer)\.lock$|-lock\.(json|yaml)$|\.min\.(js|css)$|\.snap$/) } !skip' | head -400
+'''
+timeout = 40

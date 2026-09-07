@@ -126,3 +126,19 @@ fn missing_cwd_skips_the_step_with_a_reason() {
         Some("/definitely/not/here does not exist")
     );
 }
+
+#[test]
+fn steps_see_the_prompt_and_matched_trigger_in_the_environment() {
+    use hotword::runner::run_for_prompt;
+    let workflow =
+        wf("[[steps]]\nname = \"env\"\nrun = \"echo \\\"$HOTWORD_TRIGGER|$HOTWORD_PROMPT\\\"\"\n");
+    let report = run_for_prompt(
+        &workflow,
+        std::env::temp_dir().as_path(),
+        "please T the thing #12",
+    );
+    assert_eq!(report.steps[0].output.trim(), "t|please T the thing #12");
+
+    let report = run(&workflow, std::env::temp_dir().as_path());
+    assert_eq!(report.steps[0].output.trim(), "|");
+}

@@ -361,3 +361,27 @@ fn install_and_uninstall_edit_the_agent_settings() {
         serde_json::from_str(&fs::read_to_string(&settings).unwrap()).unwrap();
     assert!(value.get("hooks").is_none(), "{value}");
 }
+
+#[test]
+fn run_and_hook_pass_the_prompt_to_steps() {
+    let sb = Sandbox::new();
+    let output = sb.run(&[
+        "add",
+        "pr",
+        "--trigger",
+        "review pr",
+        "--step",
+        "which: echo \"$HOTWORD_PROMPT\" | grep -oE '[0-9]+'",
+    ]);
+    assert!(output.status.success(), "{}", out(&output));
+    let text = out(&sb.run(&["run", "pr", "--prompt", "review pr 42 please"]));
+    assert!(text.contains("which:\n  42\n"), "{text}");
+
+    let payload = r#"{"prompt":"Review PR 7 for me"}"#;
+    let hook = sb.run_in(&sb.repo(), &["hook", "prompt"], Some(payload));
+    let json: serde_json::Value = serde_json::from_str(&out(&hook)).unwrap();
+    let ctx = json["hookSpecificOutput"]["additionalContext"]
+        .as_str()
+        .unwrap();
+    assert!(ctx.contains("which:\n  7\n"), "{ctx}");
+}

@@ -14,5 +14,5 @@ fn every_example_parses_and_validates() {
         );
         seen += 1;
     }
-    assert_eq!(seen, 2);
+    assert_eq!(seen, 3);
 }

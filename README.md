@@ -10,6 +10,8 @@ A repo can commit its own under `.hotword/`, which is how a whole team ends up w
 
 ## Install
 
+Grab a binary from the [releases page](https://github.com/matthewvilaysack/hotword/releases) (macOS and Linux, both architectures, with a `SHA256SUMS`), or build it:
+
 ```sh
 make install               # cargo install, register the Claude Code hooks, seed apple-status
 ```
@@ -78,7 +80,14 @@ A step can set its own `timeout`, a `cwd` (with `~` expanded), and `requires = [
 Pass `--project` to save into the current repo's `.hotword/` instead.
 Project workflows shadow user workflows with the same name.
 
-The `examples/` directory has two to start from: `apple-status` for the maps-cli team and `repo-status`, a generic session-start brief.
+Steps see the text that fired them as `HOTWORD_PROMPT` and the matched phrase as `HOTWORD_TRIGGER`, so "review pr 42" can hand 42 to a step.
+`hotword run <name> --prompt "..."` supplies the same thing by hand.
+
+The `examples/` directory has three to start from:
+
+- `repo-status`, a generic session-start brief: branch, unpushed commits, worktrees.
+- `pr-review`, a review session in one phrase: the PR, its description, checks, the diff, and the comment history filtered to unresolved review threads, human conversation with bots dropped, and the review verdicts. Say "review pr" on a checked-out branch or "review pr 42".
+- `apple-status`, a team-specific one showing steps that skip cleanly on a machine without the tools.
 
 ## Run and inspect
 
@@ -130,10 +139,11 @@ Both read the `cwd` field from the payload to find the repo's `.hotword/`, stay 
 ## Develop
 
 ```sh
-make test            # 47 tests, runs real shell commands in temp dirs
+make test            # 49 tests, runs real shell commands in temp dirs
 make lint            # clippy with warnings as errors
 make format-check
 ```
 
 Zero runtime configuration beyond the TOML files.
 `HOTWORD_HOME` overrides the user workflow directory, which is how the tests stay isolated.
+Releases are annotated tags; `docs/releasing.md` has the four steps and what the workflow enforces.

@@ -60,6 +60,9 @@ struct RunArgs {
     /// Exit 1 when any step fails or times out
     #[arg(long)]
     strict: bool,
+    /// Text to expose to steps as HOTWORD_PROMPT, as if it had fired the workflow
+    #[arg(long)]
+    prompt: Option<String>,
 }
 
 #[derive(Args)]
@@ -240,7 +243,10 @@ fn require(store: &Store, name: &str) -> Result<Loaded> {
 
 fn run(store: &Store, cwd: &Path, args: RunArgs) -> Result<ExitCode> {
     let loaded = require(store, &args.name)?;
-    let report = runner::run(&loaded.workflow, cwd);
+    let report = match &args.prompt {
+        Some(prompt) => runner::run_for_prompt(&loaded.workflow, cwd, prompt),
+        None => runner::run(&loaded.workflow, cwd),
+    };
     if args.json {
         println!("{}", render_json(&report));
     } else {
@@ -459,17 +465,15 @@ fn hook(event: HookEvent) -> Result<ExitCode> {
             return Ok(ExitCode::SUCCESS);
         }
     };
+    let prompt = payload["prompt"].as_str().unwrap_or_default();
     let (event_name, firing): (&str, Vec<&Workflow>) = match event {
-        HookEvent::Prompt => {
-            let prompt = payload["prompt"].as_str().unwrap_or_default();
-            (
-                "UserPromptSubmit",
-                all.iter()
-                    .map(|l| &l.workflow)
-                    .filter(|w| w.matches(prompt))
-                    .collect(),
-            )
-        }
+        HookEvent::Prompt => (
+            "UserPromptSubmit",
+            all.iter()
+                .map(|l| &l.workflow)
+                .filter(|w| w.matches(prompt))
+                .collect(),
+        ),
         HookEvent::SessionStart => (
             "SessionStart",
             all.iter()
@@ -481,7 +485,10 @@ fn hook(event: HookEvent) -> Result<ExitCode> {
     if firing.is_empty() {
         return Ok(ExitCode::SUCCESS);
     }
-    let reports: Vec<Report> = firing.iter().map(|w| runner::run(w, &cwd)).collect();
+    let reports: Vec<Report> = firing
+        .iter()
+        .map(|w| runner::run_for_prompt(w, &cwd, prompt))
+        .collect();
     let context = reports
         .iter()
         .map(|r| render_text(r, false))
