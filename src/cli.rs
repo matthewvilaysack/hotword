@@ -25,6 +25,11 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Cmd {
+    /// List workflows (what `hotword` alone prints), optionally as JSON
+    List {
+        #[arg(long)]
+        json: bool,
+    },
     /// Run a workflow now and print its report
     Run(RunArgs),
     /// Print a workflow's TOML
@@ -135,6 +140,8 @@ fn dispatch(command: Option<Cmd>) -> Result<ExitCode> {
     let cwd = std::env::current_dir().context("reading the current directory")?;
     match command {
         None => list(&store_for(&cwd)),
+        Some(Cmd::List { json: false }) => list(&store_for(&cwd)),
+        Some(Cmd::List { json: true }) => list_json(&store_for(&cwd)),
         Some(Cmd::Run(args)) => run(&store_for(&cwd), &cwd, args),
         Some(Cmd::Show { name }) => show(&store_for(&cwd), &name),
         Some(Cmd::Add(args)) => add(&store_for(&cwd), args),
@@ -214,6 +221,33 @@ fn list(store: &Store) -> Result<ExitCode> {
     println!("  Run `hotword run {first}` to run one now");
     println!("  Run `hotword show {first}` to see its steps");
     println!("  Run `hotword install` to fire them from your agent's hooks");
+    Ok(ExitCode::SUCCESS)
+}
+
+/// The listing for other front ends, such as a desktop app, so they never
+/// parse TOML themselves.
+fn list_json(store: &Store) -> Result<ExitCode> {
+    let all = store.load_all()?;
+    let workflows: Vec<serde_json::Value> = all
+        .iter()
+        .map(|l| {
+            serde_json::json!({
+                "name": l.workflow.name,
+                "description": l.workflow.description,
+                "triggers": l.workflow.triggers,
+                "on": l.workflow.on.iter().map(|e| e.as_str()).collect::<Vec<_>>(),
+                "steps": l.workflow.steps.len(),
+                "source": l.source.as_str(),
+                "path": l.path,
+            })
+        })
+        .collect();
+    let value = serde_json::json!({
+        "user_dir": store.user_dir,
+        "project_dir": store.project_dir,
+        "workflows": workflows,
+    });
+    println!("{}", serde_json::to_string_pretty(&value)?);
     Ok(ExitCode::SUCCESS)
 }
 

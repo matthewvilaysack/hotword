@@ -385,3 +385,27 @@ fn run_and_hook_pass_the_prompt_to_steps() {
         .unwrap();
     assert!(ctx.contains("which:\n  7\n"), "{ctx}");
 }
+
+#[test]
+fn list_json_is_machine_readable_for_other_front_ends() {
+    let sb = Sandbox::new();
+    add_echo(&sb, "apple-status", "apple check status");
+    let output = sb.run(&["list", "--json"]);
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_str(&out(&output)).unwrap();
+    assert_eq!(json["workflows"][0]["name"], "apple-status");
+    assert_eq!(json["workflows"][0]["triggers"][0], "apple check status");
+    assert_eq!(json["workflows"][0]["source"], "user");
+    assert_eq!(json["workflows"][0]["steps"], 1);
+    assert!(json["workflows"][0]["path"]
+        .as_str()
+        .unwrap()
+        .ends_with("apple-status.toml"));
+    assert!(json["user_dir"].as_str().is_some());
+
+    let plain = out(&sb.run(&["list"]));
+    assert!(
+        plain.contains("workflows[1]{name,triggers,on,steps,source}:"),
+        "{plain}"
+    );
+}
