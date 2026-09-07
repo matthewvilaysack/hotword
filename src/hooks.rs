@@ -54,23 +54,15 @@ pub fn settings_path(agent: Agent, scope: Scope, home: &Path, project_root: &Pat
     }
 }
 
-/// The command prefix hooks should use: the bare name when PATH resolves it to
-/// this executable, else the absolute path.
+/// The absolute path of this executable, so the hook runs even when the
+/// agent's environment has a thinner PATH than the shell that installed it.
+/// `install` repairs the path if the binary moves.
 pub fn bin_command() -> String {
-    let exe = std::env::current_exe()
+    std::env::current_exe()
         .ok()
-        .and_then(|p| fs::canonicalize(p).ok());
-    let on_path = std::env::var_os("PATH").and_then(|path| {
-        std::env::split_paths(&path)
-            .map(|dir| dir.join("hotword"))
-            .find(|candidate| candidate.is_file())
-            .and_then(|found| fs::canonicalize(found).ok())
-    });
-    match (exe, on_path) {
-        (Some(exe), Some(found)) if exe == found => "hotword".to_string(),
-        (Some(exe), _) => exe.display().to_string(),
-        (None, _) => "hotword".to_string(),
-    }
+        .and_then(|p| fs::canonicalize(p).ok())
+        .map(|p| p.display().to_string())
+        .unwrap_or_else(|| "hotword".to_string())
 }
 
 pub fn install(path: &Path, bin: &str) -> Result<Vec<String>> {
