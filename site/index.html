@@ -187,7 +187,7 @@
 <div class="wrap">
   <header class="top">
     <span>hotword 0.1.0, MIT</span>
-    <nav><a href="#mac">Mac app</a> &nbsp; <a href="https://github.com/matthewvilaysack/hotword">source on GitHub</a></nav>
+    <nav><a href="/docs">Docs</a> &nbsp; <a href="#mac">Mac app</a> &nbsp; <a href="https://github.com/matthewvilaysack/hotword">source on GitHub</a></nav>
   </header>
 
   <main>
@@ -226,9 +226,9 @@ open-prs:
       </div>
 
       <div class="install">
-        <pre>cargo install --git https://github.com/matthewvilaysack/hotword
+        <pre>curl -fsSL https://hotword-dusky.vercel.app/install | sh
 hotword install</pre>
-        <small>Registers two hooks in your agent's settings. <code>hotword uninstall</code> takes them back out and leaves everything else alone.</small>
+        <small>The installer verifies the release against its published checksums and needs no sudo. Homebrew works too: <code>brew install matthewvilaysack/tap/hotword</code>. <code>hotword uninstall</code> takes the hooks back out and leaves everything else alone.</small>
       </div>
     </section>
 

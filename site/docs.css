@@ -1,0 +1,29 @@
+:root { --asphalt:#181a1f; --rain:#090a0d; --panel:#20232a; --wet:#2b2f37; --kerb:#4b515b; --dim:#8f949c; --gray:#b9bec6; --white:#eceff2; --red:#ad2222; --signal:#ff5c5c; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace; --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif; }
+* { box-sizing: border-box; }
+html { background: var(--rain); color-scheme: dark; }
+body { margin: 0; background: var(--asphalt); color: var(--gray); font: 400 15px/1.65 var(--mono); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 78ch; margin: 0 auto; padding: 0 24px 64px; }
+header.top { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 28px 0 8px; border-bottom: 1px solid var(--wet); font-size: 13px; flex-wrap: wrap; }
+header.top .home { font: 900 28px/1 var(--display); color: var(--white); text-decoration: none; }
+header.top nav { display: flex; gap: 14px; flex-wrap: wrap; }
+header.top nav a { color: var(--dim); text-decoration: none; }
+header.top nav a[aria-current="page"], header.top nav a:hover { color: var(--white); }
+.doc h1 { font: 900 56px/1 var(--display); color: var(--white); margin: 40px 0 16px; letter-spacing: .01em; }
+.doc h2 { font: 700 32px/1.05 var(--display); color: var(--white); margin: 44px 0 12px; letter-spacing: .01em; }
+.doc h3 { font: 500 16px/1.4 var(--mono); color: var(--white); margin: 26px 0 8px; }
+.doc p, .doc li { max-width: 68ch; }
+.doc a { color: var(--white); text-decoration: underline; text-decoration-color: var(--kerb); text-underline-offset: 3px; }
+.doc a:hover { text-decoration-color: var(--signal); }
+.doc code { background: var(--panel); padding: 1px 5px; font-size: 13.5px; color: var(--white); }
+.doc pre { background: var(--rain); border: 1px solid var(--wet); padding: 14px 16px; overflow-x: auto; font-size: 13.5px; line-height: 1.55; }
+.doc pre code { background: none; padding: 0; color: var(--gray); }
+.doc img { max-width: 100%; display: block; border: 1px solid var(--wet); }
+.doc table { border-collapse: collapse; font-size: 13.5px; display: block; overflow-x: auto; }
+.doc th, .doc td { border: 1px solid var(--wet); padding: 6px 10px; text-align: left; vertical-align: top; }
+.doc th { color: var(--white); font-weight: 500; }
+.doc blockquote { margin: 0; padding: 0 0 0 14px; border-left: 3px solid var(--red); color: var(--dim); }
+.doc hr { border: 0; border-top: 1px solid var(--wet); margin: 32px 0; }
+.doc details { border: 1px solid var(--wet); padding: 8px 12px; margin: 8px 0; }
+.doc summary { cursor: pointer; color: var(--white); }
+footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--wet); font-size: 13px; color: var(--dim); }
+:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }

@@ -2,26 +2,74 @@
 
 ![hotword: say the phrase, the shell runs first](https://hotword-dusky.vercel.app/banner.svg)
 
-Type a phrase to your coding agent and a workflow of shell commands runs, with the results dropped into the agent's context before it answers.
-Say "apple check status" and the agent already knows the CLI version, the auth state, the unpushed commits, and the open PRs, instead of spending five tool calls finding out.
+> **Say the phrase. The shell runs first.**
+> A phrase you would type anyway fires a workflow of shell steps, and the report lands in your coding agent's context before it answers.
 
-The same workflows can run at session start, so every session opens with the state of the repo you are in.
+hotword turns "apple check status" or "review pr 42" into deterministic commands that run before the model sees your prompt.
+No guessing which commands exist, no five tool calls to rediscover the state of a repo, and no tokens spent on it.
 
-Workflows are small TOML files.
-A repo can commit its own under `.hotword/`, which is how a whole team ends up with the same "check status" behaviour in every agent session without anyone writing a hook by hand.
+| Layer | What it is | Where it lives |
+| :--- | :--- | :--- |
+| **1. Phrase** | A trigger that appears in the prompt, or a session-start event | `triggers = [...]`, `on = ["session-start"]` |
+| **2. Steps** | Shell commands run in order, each on its own timeout, skipped with a reason when a tool is missing | `[[steps]]` in one TOML file |
+| **3. Context** | A compact report handed to Claude Code, Codex, or OpenCode through their hook contract | `hotword hook prompt`, `hotword hook session-start` |
 
-## Install
+**Start here:** [Site](https://hotword-dusky.vercel.app) | [Docs](https://hotword-dusky.vercel.app/docs) | [Design](https://hotword-dusky.vercel.app/docs/design) | [Releasing](https://hotword-dusky.vercel.app/docs/releasing) | [Changelog](https://hotword-dusky.vercel.app/docs/changelog) | [Mac app](https://hotword-dusky.vercel.app/#mac)
 
-Grab a binary from the [releases page](https://github.com/matthewvilaysack/hotword/releases) (macOS and Linux, both architectures, with a `SHA256SUMS`), or build it:
+## Quick start
 
 ```sh
-make install               # cargo install, register the Claude Code hooks, seed apple-status
+curl -fsSL https://hotword-dusky.vercel.app/install | sh
+hotword install
 ```
 
-Or piece by piece:
+The installer picks the release for your machine, checks it against the checksums that release published, and puts `hotword` in `~/.local/bin` without sudo.
+`hotword install` registers the hooks in Claude Code's settings; `--agent codex` does the same for Codex.
+
+### Every way to install it
+
+<details>
+<summary><b>curl</b>, the one-line installer (shown above)</summary>
 
 ```sh
-cargo install --path .
+curl -fsSL https://hotword-dusky.vercel.app/install | sh
+curl -fsSL https://hotword-dusky.vercel.app/install | sh -s -- --version 0.1.0 --prefix ~/bin
+```
+
+Needs only curl and tar. Pin a version with `--version`, choose a directory with `--prefix`, or `--dry-run` to see what it would do.
+</details>
+
+<details>
+<summary><b>Homebrew</b>, macOS and Linux</summary>
+
+```sh
+brew install matthewvilaysack/tap/hotword
+brew upgrade hotword
+```
+
+The formula installs the same release tarball the installer uses, checksums included, and puts the example workflows under `$(brew --prefix)/share/hotword/examples`.
+</details>
+
+<details>
+<summary><b>Release tarball</b>, by hand</summary>
+
+Every release on the [releases page](https://github.com/matthewvilaysack/hotword/releases) ships macOS and Linux builds for both architectures with a `SHA256SUMS`.
+Verify, untar, and copy `hotword` somewhere on your PATH.
+</details>
+
+<details>
+<summary><b>cargo</b>, from source</summary>
+
+```sh
+cargo install --git https://github.com/matthewvilaysack/hotword
+```
+
+Or in a checkout, `make install` builds it, registers the Claude Code hooks, and seeds the `apple-status` workflow if you have none.
+</details>
+
+Then:
+
+```sh
 hotword install            # registers the hooks in ~/.claude/settings.json
 hotword install --agent codex
 ```

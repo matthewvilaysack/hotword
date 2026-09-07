@@ -1,6 +1,6 @@
 target/
 site/banner.png
 site/banner.svg
+site/docs/
 node_modules/
 .cache/
-.vercel

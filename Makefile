@@ -1,4 +1,4 @@
-.PHONY: build lint lint-fix test format format-check install banner
+.PHONY: build lint lint-fix test format format-check install banner docs
 
 build:
 	cargo build --release
@@ -30,3 +30,7 @@ install:
 # The banner PNG is rendered from site/banner.svg, never edited by hand.
 banner:
 	bun scripts/build-banner.mjs
+
+# The docs pages under site/docs are rendered from the repo markdown.
+docs:
+	bun scripts/build-docs.mjs
