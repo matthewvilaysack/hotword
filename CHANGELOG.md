@@ -6,6 +6,8 @@ Entries are written for the person upgrading: what changed for them, not which f
 
 ## Unreleased
 
+- `yardstick` example: a measured design critique of a page against named reference sites, fired by "critique my page", "yardstick", or "does this look generic".
+
 ## 0.1.0
 
 First release.

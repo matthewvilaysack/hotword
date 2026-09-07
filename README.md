@@ -77,17 +77,30 @@ run = "git log --branches --not --remotes --oneline"
 Add `on = ["session-start"]` to also run it when a session starts.
 A step can set its own `timeout`, a `cwd` (with `~` expanded), and `requires = ["gh"]` when the first word of the command is not the binary it depends on.
 
-Pass `--project` to save into the current repo's `.hotword/` instead.
-Project workflows shadow user workflows with the same name.
+### Share a workflow with your team
+
+Pass `--project` to save into the current repo's `.hotword/` instead of your home config:
+
+```sh
+hotword add ci-status --project \
+  --trigger "check ci" \
+  --step "workflow: gh run list --branch main --workflow 'Build' --limit 3" \
+  --step "head: git log -1 --format='%h %s'"
+```
+
+That writes `.hotword/ci-status.toml` inside the repo, not `~/.config/hotword/`.
+Commit it, and every teammate's agent learns the "check ci" phrase on their next `git pull`; nobody writes a hook by hand.
+A project workflow shadows a user workflow of the same name, so a repo can override a personal default without either side editing the other's file.
 
 Steps see the text that fired them as `HOTWORD_PROMPT` and the matched phrase as `HOTWORD_TRIGGER`, so "review pr 42" can hand 42 to a step.
 `hotword run <name> --prompt "..."` supplies the same thing by hand.
 
-The `examples/` directory has three to start from:
+The `examples/` directory has four to start from:
 
 - `repo-status`, a generic session-start brief: branch, unpushed commits, worktrees.
 - `pr-review`, a review session in one phrase: the PR, its description, checks, the diff, and the comment history filtered to unresolved review threads, human conversation with bots dropped, and the review verdicts. Say "review pr" on a checked-out branch or "review pr 42".
 - `apple-status`, a team-specific one showing steps that skip cleanly on a machine without the tools.
+- `yardstick`, a design critique in one phrase: "critique my page http://localhost:3000 vs stripe.com,linear.app" runs [yardstick](https://github.com/matthewvilaysack/yardstick) and hands the agent the side-by-side numbers, the key moves, and a recommended direction before it answers. With no references named it uses your first saved theme.
 
 ## Run and inspect
 
