@@ -1,6 +1,8 @@
 # Tag-driven, in the Linux and Cilium shape: an annotated tag named vX.Y.Z on
 # main is the release event. Nothing is published unless the same commit is
 # green, the tag matches Cargo.toml, and CHANGELOG.md has a section for it.
+# Both macOS targets build on the Apple silicon runner; the Intel one is a
+# cross-compile, since GitHub retired the macos-13 pool.
 name: release
 
 on:
@@ -51,7 +53,7 @@ jobs:
           - target: aarch64-apple-darwin
             os: macos-14
           - target: x86_64-apple-darwin
-            os: macos-13
+            os: macos-14
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
           - target: aarch64-unknown-linux-gnu
