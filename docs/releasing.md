@@ -38,9 +38,3 @@ git push origin :refs/tags/vX.Y.Z
 ```
 
 A tag that never produced a release can be moved. A tag that did produce one is history; ship a patch instead.
-
-## Where the shape comes from
-
-Linux: annotated tags are the release, and release candidates are tags with an `-rc` suffix.
-Cilium: a tag-triggered workflow publishes, and the notes are generated from the change list rather than typed into a form.
-a2ui: every merge is gated by the same checks, so the release gate re-runs them rather than trusting the badge.
