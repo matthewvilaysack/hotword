@@ -3,7 +3,7 @@ use hotword::runner::{Report, Status, StepResult};
 
 fn report() -> Report {
     Report {
-        workflow: "apple-status".into(),
+        workflow: "deploy-status".into(),
         description: Some("Where things stand".into()),
         max_lines: 2,
         steps: vec![
@@ -38,7 +38,7 @@ fn report() -> Report {
 #[test]
 fn text_report_has_toon_summary_then_outputs() {
     let text = render_text(&report(), false);
-    assert!(text.starts_with("hotword: apple-status\n"), "{text}");
+    assert!(text.starts_with("hotword: deploy-status\n"), "{text}");
     assert!(text.contains("steps[3]{name,status,exit,ms}:\n  version,ok,0,12\n  doctor,fail,1,340\n  prs,skip,-,0\n"), "{text}");
     assert!(text.contains("version:\n  0.2.68\n"), "{text}");
     assert!(text.contains("prs: skipped, gh not on PATH\n"), "{text}");
@@ -52,7 +52,7 @@ fn text_report_truncates_long_output_and_says_how_to_get_it_all() {
         "{text}"
     );
     assert!(
-        text.contains("help: run `hotword run apple-status --full` for untruncated output"),
+        text.contains("help: run `hotword run deploy-status --full` for untruncated output"),
         "{text}"
     );
     let full = render_text(&report(), true);
@@ -63,7 +63,7 @@ fn text_report_truncates_long_output_and_says_how_to_get_it_all() {
 #[test]
 fn json_report_is_machine_readable() {
     let value: serde_json::Value = serde_json::from_str(&render_json(&report())).unwrap();
-    assert_eq!(value["workflow"], "apple-status");
+    assert_eq!(value["workflow"], "deploy-status");
     assert_eq!(value["summary"]["ok"], 1);
     assert_eq!(value["summary"]["fail"], 1);
     assert_eq!(value["summary"]["skip"], 1);

@@ -6,6 +6,8 @@ Entries are written for the person upgrading: what changed for them, not which f
 
 ## Unreleased
 
+- The `deploy-status` example replaces the team-specific one.
+
 ## 0.2.0
 
 - `hotword ui`: a lazygit-shaped terminal interface with live step-by-step runs, prompt runs, filtering, and in-place editing, in the City-783 palette.
@@ -27,4 +29,4 @@ First release.
 - `HOTWORD_PROMPT` and `HOTWORD_TRIGGER` in every step's environment, so a step can read a PR number or a branch out of what was typed.
 - Guided `hotword add` on a terminal, flags everywhere else.
 - OpenCode plugin in `integrations/opencode`.
-- Examples: `apple-status`, `repo-status`, and `pr-review`.
+- Examples: `deploy-status`, `repo-status`, and `pr-review`.

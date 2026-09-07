@@ -5,7 +5,7 @@
 > **Say the phrase. The shell runs first.**
 > A phrase you would type anyway fires a workflow of shell steps, and the report lands in your coding agent's context before it answers.
 
-hotword turns "apple check status" or "review pr 42" into deterministic commands that run before the model sees your prompt.
+hotword turns "check the deploy" or "review pr 42" into deterministic commands that run before the model sees your prompt.
 No guessing which commands exist, no five tool calls to rediscover the state of a repo, and no tokens spent on it.
 
 | Layer | What it is | Where it lives |
@@ -64,7 +64,7 @@ Verify, untar, and copy `hotword` somewhere on your PATH.
 cargo install --git https://github.com/matthewvilaysack/hotword
 ```
 
-Or in a checkout, `make install` builds it, registers the Claude Code hooks, and seeds the `apple-status` workflow if you have none.
+Or in a checkout, `make install` builds it, registers the Claude Code hooks, and seeds the `deploy-status` workflow if you have none.
 </details>
 
 Then:
@@ -90,34 +90,34 @@ The plugin typechecks against the published plugin types but has not been run in
 Guided, on a terminal:
 
 ```sh
-hotword add apple-status
+hotword add deploy-status
 ```
 
 Or in one line:
 
 ```sh
-hotword add apple-status \
-  --trigger "apple check status" \
-  --step "version: maps-cli --version" \
-  --step "plugins: maps-cli plugins doctor" \
+hotword add deploy-status \
+  --trigger "check the deploy" \
+  --step "branch: git status --short --branch" \
+  --step "ci: gh run list --limit 5" \
   --step "unpushed: git log --branches --not --remotes --oneline"
 ```
 
-That writes `~/.config/hotword/apple-status.toml`:
+That writes `~/.config/hotword/deploy-status.toml`:
 
 ```toml
-name = "apple-status"
-triggers = ["apple check status"]
+name = "deploy-status"
+triggers = ["check the deploy"]
 timeout = 30
 max_lines = 40
 
 [[steps]]
-name = "version"
-run = "maps-cli --version"
+name = "branch"
+run = "git status --short --branch"
 
 [[steps]]
-name = "plugins"
-run = "maps-cli plugins doctor"
+name = "ci"
+run = "gh run list --limit 5"
 
 [[steps]]
 name = "unpushed"
@@ -149,7 +149,7 @@ The `examples/` directory has four to start from:
 
 - `repo-status`, a generic session-start brief: branch, unpushed commits, worktrees.
 - `pr-review`, a review session in one phrase: the PR, its description, checks, the diff, and the comment history filtered to unresolved review threads, human conversation with bots dropped, and the review verdicts. Say "review pr" on a checked-out branch or "review pr 42".
-- `apple-status`, a team-specific one showing steps that skip cleanly on a machine without the tools.
+- `deploy-status`, the checkout, CI runs, and open pull requests in one phrase, with steps that skip cleanly on a machine without `gh`.
 - `yardstick`, a design critique in one phrase: "critique my page http://localhost:3000 vs stripe.com,linear.app" runs [yardstick](https://github.com/matthewvilaysack/yardstick) and hands the agent the side-by-side numbers, the key moves, and a recommended direction before it answers. With no references named it uses your first saved theme.
 
 ## Run and inspect
@@ -157,15 +157,15 @@ The `examples/` directory has four to start from:
 ```sh
 hotword                        # list workflows, where they live, what fires them
 hotword ui                     # the terminal interface, see below
-hotword run apple-status       # run one now
-hotword run apple-status --json
-hotword run apple-status --full
-hotword run apple-status --strict   # exit 1 if any step failed, for CI
+hotword run deploy-status       # run one now
+hotword run deploy-status --json
+hotword run deploy-status --full
+hotword run deploy-status --strict   # exit 1 if any step failed, for CI
 hotword run pr-review --prompt "review pr 42"
-hotword match "hey apple check status"   # which workflows would fire
-hotword show apple-status
-hotword edit apple-status      # opens $EDITOR, re-validates on save
-hotword remove apple-status
+hotword match "hey check the deploy"   # which workflows would fire
+hotword show deploy-status
+hotword edit deploy-status      # opens $EDITOR, re-validates on save
+hotword remove deploy-status
 hotword list --json            # the listing for other front ends
 hotword save < workflow.toml   # validate and write a workflow from stdin
 ```
@@ -173,8 +173,8 @@ hotword save < workflow.toml   # validate and write a workflow from stdin
 ### Debug a broken workflow
 
 ```sh
-hotword doctor apple-status
-hotword doctor apple-status --step open-prs   # rerun one step with full output
+hotword doctor deploy-status
+hotword doctor deploy-status --step open-prs   # rerun one step with full output
 ```
 
 `doctor` runs the workflow, then gives every step a verdict with the cause in plain words and the fixes to try: a tool missing from PATH, a `cwd` that does not exist here, a command that wants `gh auth login`, a host it could not reach, a grep that exited 1 because it found nothing, a step that hit its timeout.
@@ -202,16 +202,16 @@ Once initialised, every `hotword run` and every hook run becomes a commit in a [
 A run report looks like this:
 
 ```
-hotword: apple-status
+hotword: deploy-status
 steps[3]{name,status,exit,ms}:
-  version,ok,0,120
-  plugins,fail,1,340
+  branch,ok,0,18
+  ci,fail,1,340
   unpushed,skip,-,0
 
-version:
-  maps-cli 0.2.68
+branch:
+  ## main...origin/main
 
-plugins (exit 1):
+ci (exit 1):
   ...
 
 unpushed: skipped, git not on PATH
@@ -226,7 +226,7 @@ A step that passes its timeout is killed along with anything it started.
 `hotword hook prompt` reads the event JSON the agent sends on stdin, runs every workflow whose trigger phrase appears in the prompt, and prints:
 
 ```json
-{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"hotword: apple-status\n..."}}
+{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"hotword: deploy-status\n..."}}
 ```
 
 `hotword hook session-start` does the same for workflows with `on = ["session-start"]`.
@@ -236,7 +236,7 @@ Both read the `cwd` field from the payload to find the repo's `.hotword/`, stay 
 
 It began as hook hacking.
 Claude Code exposes a small lifecycle, documented in the [hooks reference](https://code.claude.com/docs/en/hooks): a shell command gets JSON on stdin when a session starts or a prompt is submitted, and whatever it prints as `additionalContext` lands in the model's context before the next request.
-The first version was a bash script matched on the word "apple" that opened a dashboard.
+The first version was a bash script matched on one word that opened a dashboard.
 The interesting part turned out to be the shape underneath: a phrase is a cheap, honest trigger, and a hook that runs deterministic commands puts facts in front of the agent instead of making it guess.
 hotword is that pattern made reusable, with the hook contract handled once so a workflow is only the phrase and the steps.
 

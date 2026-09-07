@@ -16,7 +16,7 @@ fn loaded(name: &str, trigger: &str) -> Loaded {
 
 fn state() -> State {
     State::new(vec![
-        loaded("apple-status", "apple status"),
+        loaded("deploy-status", "deploy status"),
         loaded("pr-review", "review pr"),
         loaded("repo-status", "repo status"),
     ])
@@ -25,7 +25,7 @@ fn state() -> State {
 #[test]
 fn selection_moves_and_clamps() {
     let mut s = state();
-    assert_eq!(s.selected().unwrap().workflow.name, "apple-status");
+    assert_eq!(s.selected().unwrap().workflow.name, "deploy-status");
     s.handle(Action::Down);
     s.handle(Action::Down);
     s.handle(Action::Down);
@@ -33,7 +33,7 @@ fn selection_moves_and_clamps() {
     s.handle(Action::Up);
     assert_eq!(s.selected().unwrap().workflow.name, "pr-review");
     s.handle(Action::Top);
-    assert_eq!(s.selected().unwrap().workflow.name, "apple-status");
+    assert_eq!(s.selected().unwrap().workflow.name, "deploy-status");
     s.handle(Action::Bottom);
     assert_eq!(s.selected().unwrap().workflow.name, "repo-status");
 }
@@ -82,19 +82,19 @@ fn run_requests_are_refused_while_that_workflow_is_running() {
     let mut s = state();
     assert_eq!(
         s.handle(Action::Run),
-        Some(("apple-status".to_string(), None))
+        Some(("deploy-status".to_string(), None))
     );
-    s.mark_running("apple-status");
+    s.mark_running("deploy-status");
     assert_eq!(s.handle(Action::Run), None);
-    assert!(s.is_running("apple-status"));
+    assert!(s.is_running("deploy-status"));
 }
 
 #[test]
 fn step_results_stream_in_and_finish_into_a_report() {
     let mut s = state();
-    s.mark_running("apple-status");
+    s.mark_running("deploy-status");
     s.push_step(
-        "apple-status",
+        "deploy-status",
         StepResult {
             name: "a".into(),
             status: Status::Ok,
@@ -104,9 +104,9 @@ fn step_results_stream_in_and_finish_into_a_report() {
             reason: None,
         },
     );
-    assert_eq!(s.progress("apple-status"), Some((1, 2)));
+    assert_eq!(s.progress("deploy-status"), Some((1, 2)));
     let report = Report {
-        workflow: "apple-status".into(),
+        workflow: "deploy-status".into(),
         description: None,
         max_lines: 40,
         steps: vec![
@@ -128,10 +128,10 @@ fn step_results_stream_in_and_finish_into_a_report() {
             },
         ],
     };
-    s.finish("apple-status", report);
-    assert!(!s.is_running("apple-status"));
-    assert_eq!(s.report("apple-status").unwrap().count(Status::Fail), 1);
-    assert_eq!(s.progress("apple-status"), None);
+    s.finish("deploy-status", report);
+    assert!(!s.is_running("deploy-status"));
+    assert_eq!(s.report("deploy-status").unwrap().count(Status::Fail), 1);
+    assert_eq!(s.progress("deploy-status"), None);
 }
 
 #[test]
@@ -162,7 +162,7 @@ fn report_scrolls_only_when_the_report_panel_is_focused() {
     assert_eq!(s.report_scroll, 2);
     s.handle(Action::Up);
     assert_eq!(s.report_scroll, 1);
-    assert_eq!(s.selected().unwrap().workflow.name, "apple-status");
+    assert_eq!(s.selected().unwrap().workflow.name, "deploy-status");
 }
 
 #[test]

@@ -4,7 +4,7 @@ use hotword::workflow::Workflow;
 
 fn wf() -> Workflow {
     Workflow::from_toml(
-        "name = \"t\"\ntriggers = [\"t\"]\n[[steps]]\nname = \"a\"\nrun = \"maps-cli --version\"\n[[steps]]\nname = \"b\"\nrun = \"gh pr list\"\n[[steps]]\nname = \"c\"\nrun = \"grep needle file.txt\"\n[[steps]]\nname = \"d\"\nrun = \"sleep 90\"\n[[steps]]\nname = \"e\"\nrun = \"echo fine\"\n",
+        "name = \"t\"\ntriggers = [\"t\"]\n[[steps]]\nname = \"a\"\nrun = \"mytool --version\"\n[[steps]]\nname = \"b\"\nrun = \"gh pr list\"\n[[steps]]\nname = \"c\"\nrun = \"grep needle file.txt\"\n[[steps]]\nname = \"d\"\nrun = \"sleep 90\"\n[[steps]]\nname = \"e\"\nrun = \"echo fine\"\n",
     )
     .unwrap()
 }
@@ -33,7 +33,7 @@ fn every_step_gets_a_verdict_with_a_cause_and_a_fix() {
         description: None,
         max_lines: 40,
         steps: vec![
-            step("a", Status::Skip, None, "", Some("maps-cli not on PATH")),
+            step("a", Status::Skip, None, "", Some("mytool not on PATH")),
             step(
                 "b",
                 Status::Fail,
@@ -50,7 +50,7 @@ fn every_step_gets_a_verdict_with_a_cause_and_a_fix() {
     assert_eq!(d.steps.len(), 5);
     assert_eq!(d.steps[0].verdict, Verdict::MissingTool);
     assert!(
-        d.steps[0].cause.contains("maps-cli"),
+        d.steps[0].cause.contains("mytool"),
         "{}",
         d.steps[0].cause
     );
@@ -92,7 +92,7 @@ fn common_shell_failures_are_named() {
         ),
         ("bash: ./x: Permission denied\n", Verdict::Permission),
         (
-            "error connecting to github.geo.apple.com\ncheck your internet connection\n",
+            "error connecting to github.example.com\ncheck your internet connection\n",
             Verdict::Network,
         ),
         ("Error: HTTP 401: Bad credentials\n", Verdict::NeedsAuth),
@@ -122,7 +122,7 @@ fn missing_folder_skip_points_at_cwd() {
             Status::Skip,
             None,
             "",
-            Some("/Users/x/code/nucleus does not exist"),
+            Some("/Users/x/code/service does not exist"),
         )],
     };
     let d = diagnose(&wf(), &report);

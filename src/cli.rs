@@ -99,7 +99,7 @@ struct DoctorArgs {
 
 #[derive(Args)]
 struct AddArgs {
-    /// Lowercase slug, like apple-status
+    /// Lowercase slug, like deploy-status
     name: String,
     /// Phrase that fires the workflow when it appears in a prompt (repeatable)
     #[arg(long = "trigger")]

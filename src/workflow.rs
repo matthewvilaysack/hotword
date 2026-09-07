@@ -78,7 +78,7 @@ impl Workflow {
     pub fn validate(&self) -> Result<()> {
         if !is_slug(&self.name) {
             bail!(
-                "name {:?} must be lowercase letters, digits, and hyphens (like apple-status)",
+                "name {:?} must be lowercase letters, digits, and hyphens (like deploy-status)",
                 self.name
             );
         }

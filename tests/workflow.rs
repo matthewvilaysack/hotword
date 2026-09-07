@@ -3,24 +3,24 @@ use std::fs;
 use hotword::workflow::{Event, Source, Store, Workflow};
 
 const MINIMAL: &str = r#"
-name = "apple-status"
-triggers = ["apple check status"]
+name = "deploy-status"
+triggers = ["check the deploy"]
 
 [[steps]]
 name = "version"
-run = "maps-cli --version"
+run = "mytool --version"
 "#;
 
 #[test]
 fn parses_minimal_toml_with_defaults() {
     let wf = Workflow::from_toml(MINIMAL).unwrap();
-    assert_eq!(wf.name, "apple-status");
-    assert_eq!(wf.triggers, vec!["apple check status"]);
+    assert_eq!(wf.name, "deploy-status");
+    assert_eq!(wf.triggers, vec!["check the deploy"]);
     assert!(wf.on.is_empty());
     assert_eq!(wf.timeout, 30);
     assert_eq!(wf.max_lines, 40);
     assert_eq!(wf.steps.len(), 1);
-    assert_eq!(wf.steps[0].run, "maps-cli --version");
+    assert_eq!(wf.steps[0].run, "mytool --version");
     assert_eq!(wf.steps[0].timeout, None);
 }
 
@@ -41,8 +41,8 @@ fn toml_round_trips() {
 #[test]
 fn matches_trigger_ignoring_case_and_spacing() {
     let wf = Workflow::from_toml(MINIMAL).unwrap();
-    assert!(wf.matches("Apple   check STATUS please"));
-    assert!(!wf.matches("check the apple status"));
+    assert!(wf.matches("Check   THE deploy please"));
+    assert!(!wf.matches("deploy the check"));
 }
 
 #[test]
@@ -53,14 +53,14 @@ fn rejects_workflow_without_steps() {
 
 #[test]
 fn rejects_name_that_is_not_a_slug() {
-    let text = MINIMAL.replace("apple-status", "Apple Status");
+    let text = MINIMAL.replace("deploy-status", "Deploy Status");
     let err = Workflow::from_toml(&text).unwrap_err();
     assert!(err.to_string().contains("lowercase"), "{err}");
 }
 
 #[test]
 fn rejects_workflow_with_no_trigger_and_no_event() {
-    let text = MINIMAL.replace("triggers = [\"apple check status\"]", "");
+    let text = MINIMAL.replace("triggers = [\"check the deploy\"]", "");
     let err = Workflow::from_toml(&text).unwrap_err();
     assert!(err.to_string().contains("trigger"), "{err}");
 }
@@ -90,15 +90,15 @@ fn project_workflow_shadows_user_workflow_of_same_name() {
     proj.steps[0].run = "echo project".into();
     store.save(&user, Source::User).unwrap();
     store.save(&proj, Source::Project).unwrap();
-    let other = Workflow::from_toml(&MINIMAL.replace("apple-status", "aaa")).unwrap();
+    let other = Workflow::from_toml(&MINIMAL.replace("deploy-status", "aaa")).unwrap();
     store.save(&other, Source::User).unwrap();
 
     let all = store.load_all().unwrap();
     let names: Vec<_> = all.iter().map(|l| l.workflow.name.as_str()).collect();
-    assert_eq!(names, vec!["aaa", "apple-status"]);
-    let apple = store.find("apple-status").unwrap().unwrap();
-    assert_eq!(apple.source, Source::Project);
-    assert_eq!(apple.workflow.steps[0].run, "echo project");
+    assert_eq!(names, vec!["aaa", "deploy-status"]);
+    let found = store.find("deploy-status").unwrap().unwrap();
+    assert_eq!(found.source, Source::Project);
+    assert_eq!(found.workflow.steps[0].run, "echo project");
 }
 
 #[test]
@@ -110,12 +110,12 @@ fn save_and_remove_use_name_as_filename() {
     };
     let wf = Workflow::from_toml(MINIMAL).unwrap();
     let path = store.save(&wf, Source::User).unwrap();
-    assert_eq!(path, tmp.path().join("user/apple-status.toml"));
+    assert_eq!(path, tmp.path().join("user/deploy-status.toml"));
     assert!(path.exists());
-    let removed = store.remove("apple-status").unwrap();
+    let removed = store.remove("deploy-status").unwrap();
     assert_eq!(removed, path);
     assert!(!path.exists());
-    assert!(store.remove("apple-status").is_err());
+    assert!(store.remove("deploy-status").is_err());
 }
 
 #[test]

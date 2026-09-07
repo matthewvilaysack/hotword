@@ -91,9 +91,9 @@ fn add_writes_a_user_workflow_and_listing_shows_it() {
     let sb = Sandbox::new();
     let output = sb.run(&[
         "add",
-        "apple-status",
+        "deploy-status",
         "--trigger",
-        "apple check status",
+        "check the deploy",
         "--step",
         "version: echo 0.1",
         "--description",
@@ -101,7 +101,7 @@ fn add_writes_a_user_workflow_and_listing_shows_it() {
     ]);
     let text = out(&output);
     assert!(output.status.success(), "{text}");
-    let path = sb.home().join(".config/hotword/apple-status.toml");
+    let path = sb.home().join(".config/hotword/deploy-status.toml");
     assert!(
         text.contains(&format!("saved: {}", path.display())),
         "{text}"
@@ -109,9 +109,9 @@ fn add_writes_a_user_workflow_and_listing_shows_it() {
     assert!(path.exists());
 
     let listing = out(&sb.run(&[]));
-    assert!(listing.contains("workflows[1]{name,triggers,on,steps,source}:\n  apple-status,apple check status,-,1,user\n"), "{listing}");
+    assert!(listing.contains("workflows[1]{name,triggers,on,steps,source}:\n  deploy-status,check the deploy,-,1,user\n"), "{listing}");
     assert!(
-        listing.contains("help[") && listing.contains("hotword run apple-status"),
+        listing.contains("help[") && listing.contains("hotword run deploy-status"),
         "{listing}"
     );
 }
@@ -219,11 +219,11 @@ fn show_prints_toml_and_remove_deletes_it() {
 #[test]
 fn match_reports_which_workflows_a_prompt_fires() {
     let sb = Sandbox::new();
-    add_echo(&sb, "apple-status", "apple check status");
+    add_echo(&sb, "deploy-status", "check the deploy");
     add_echo(&sb, "other", "deploy legco");
-    let hit = out(&sb.run(&["match", "hey, Apple Check Status please"]));
+    let hit = out(&sb.run(&["match", "hey, Check The Deploy please"]));
     assert!(
-        hit.contains("matches[1]{name,trigger}:\n  apple-status,apple check status\n"),
+        hit.contains("matches[1]{name,trigger}:\n  deploy-status,check the deploy\n"),
         "{hit}"
     );
     let miss = out(&sb.run(&["match", "nothing here"]));
@@ -236,9 +236,9 @@ fn match_reports_which_workflows_a_prompt_fires() {
 #[test]
 fn hook_prompt_injects_context_only_when_a_trigger_matches() {
     let sb = Sandbox::new();
-    add_echo(&sb, "apple-status", "apple check status");
+    add_echo(&sb, "deploy-status", "check the deploy");
     let payload = format!(
-        r#"{{"prompt":"apple check status","cwd":"{}"}}"#,
+        r#"{{"prompt":"check the deploy","cwd":"{}"}}"#,
         sb.repo().display()
     );
     let output = sb.run_in(&sb.repo(), &["hook", "prompt"], Some(&payload));
@@ -251,7 +251,7 @@ fn hook_prompt_injects_context_only_when_a_trigger_matches() {
     let ctx = json["hookSpecificOutput"]["additionalContext"]
         .as_str()
         .unwrap();
-    assert!(ctx.contains("hotword: apple-status"), "{ctx}");
+    assert!(ctx.contains("hotword: deploy-status"), "{ctx}");
     assert!(ctx.contains("hello from workflow"), "{ctx}");
 
     let quiet = sb.run_in(
@@ -389,18 +389,18 @@ fn run_and_hook_pass_the_prompt_to_steps() {
 #[test]
 fn list_json_is_machine_readable_for_other_front_ends() {
     let sb = Sandbox::new();
-    add_echo(&sb, "apple-status", "apple check status");
+    add_echo(&sb, "deploy-status", "check the deploy");
     let output = sb.run(&["list", "--json"]);
     assert!(output.status.success());
     let json: serde_json::Value = serde_json::from_str(&out(&output)).unwrap();
-    assert_eq!(json["workflows"][0]["name"], "apple-status");
-    assert_eq!(json["workflows"][0]["triggers"][0], "apple check status");
+    assert_eq!(json["workflows"][0]["name"], "deploy-status");
+    assert_eq!(json["workflows"][0]["triggers"][0], "check the deploy");
     assert_eq!(json["workflows"][0]["source"], "user");
     assert_eq!(json["workflows"][0]["steps"], 1);
     assert!(json["workflows"][0]["path"]
         .as_str()
         .unwrap()
-        .ends_with("apple-status.toml"));
+        .ends_with("deploy-status.toml"));
     assert!(json["user_dir"].as_str().is_some());
 
     let plain = out(&sb.run(&["list"]));
