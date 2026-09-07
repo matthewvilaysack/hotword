@@ -49,11 +49,7 @@ fn every_step_gets_a_verdict_with_a_cause_and_a_fix() {
     let d = diagnose(&wf(), &report);
     assert_eq!(d.steps.len(), 5);
     assert_eq!(d.steps[0].verdict, Verdict::MissingTool);
-    assert!(
-        d.steps[0].cause.contains("mytool"),
-        "{}",
-        d.steps[0].cause
-    );
+    assert!(d.steps[0].cause.contains("mytool"), "{}", d.steps[0].cause);
     assert!(
         d.steps[0].fixes.iter().any(|f| f.contains("requires")),
         "{:?}",
