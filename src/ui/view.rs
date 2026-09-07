@@ -248,8 +248,6 @@ fn draw_report(frame: &mut Frame, area: Rect, state: &State) {
                 theme::signal()
             } else if line.trim_start().starts_with("fix:") || line.starts_with("start with:") {
                 theme::key()
-            } else if line.trim_start().starts_with("fix:") || line.starts_with("start with:") {
-                theme::key()
             } else if line.starts_with("help:") || line.contains("skipped,") {
                 theme::dim()
             } else {
