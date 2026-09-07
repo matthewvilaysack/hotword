@@ -8,6 +8,7 @@ use std::process::ExitCode;
 use anyhow::{anyhow, bail, Context, Result};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
+use crate::history::History;
 use crate::hooks::{self, Agent, Scope};
 use crate::report::{hook_json, render_json, render_text};
 use crate::runner::{self, Report, Status};
@@ -30,6 +31,8 @@ enum Cmd {
         #[arg(long)]
         json: bool,
     },
+    /// Open the terminal interface: browse, run, and watch workflows
+    Ui,
     /// Run a workflow now and print its report
     Run(RunArgs),
     /// Print a workflow's TOML
@@ -38,6 +41,12 @@ enum Cmd {
     Add(AddArgs),
     /// Open a workflow's TOML in $EDITOR
     Edit { name: String },
+    /// Read a workflow's TOML on stdin, validate it, and write it (for front ends)
+    Save {
+        /// Save into this repo's .hotword/ instead of your user config
+        #[arg(long)]
+        project: bool,
+    },
     /// Delete a workflow
     Remove { name: String },
     /// Show which workflows a piece of text would fire
@@ -46,6 +55,8 @@ enum Cmd {
     Install(InstallArgs),
     /// Remove the hooks from an agent's settings file
     Uninstall(InstallArgs),
+    /// Run history kept in a Dolt repository (optional; needs dolt on PATH)
+    History(HistoryArgs),
     /// Entry point the agent's hook calls (reads the event JSON on stdin)
     Hook {
         #[arg(value_enum)]
@@ -91,6 +102,26 @@ struct AddArgs {
     /// Per-step timeout in seconds
     #[arg(long, default_value_t = crate::workflow::DEFAULT_TIMEOUT)]
     timeout: u64,
+}
+
+#[derive(Args)]
+struct HistoryArgs {
+    #[command(subcommand)]
+    action: Option<HistoryAction>,
+    /// Only runs of this workflow
+    #[arg(long)]
+    workflow: Option<String>,
+    /// How many runs to list
+    #[arg(long, default_value_t = 20)]
+    limit: usize,
+}
+
+#[derive(Subcommand)]
+enum HistoryAction {
+    /// Create the Dolt repository under your user config and its tables
+    Init,
+    /// Steps whose status or output changed between the last two runs
+    Changes { workflow: String },
 }
 
 #[derive(Args)]
@@ -142,12 +173,18 @@ fn dispatch(command: Option<Cmd>) -> Result<ExitCode> {
         None => list(&store_for(&cwd)),
         Some(Cmd::List { json: false }) => list(&store_for(&cwd)),
         Some(Cmd::List { json: true }) => list_json(&store_for(&cwd)),
+        Some(Cmd::Ui) => {
+            crate::ui::run(&store_for(&cwd), &cwd)?;
+            Ok(ExitCode::SUCCESS)
+        }
         Some(Cmd::Run(args)) => run(&store_for(&cwd), &cwd, args),
         Some(Cmd::Show { name }) => show(&store_for(&cwd), &name),
         Some(Cmd::Add(args)) => add(&store_for(&cwd), args),
         Some(Cmd::Edit { name }) => edit(&store_for(&cwd), &name),
+        Some(Cmd::Save { project }) => save(&store_for(&cwd), project),
         Some(Cmd::Remove { name }) => remove(&store_for(&cwd), &name),
         Some(Cmd::Match { text }) => match_text(&store_for(&cwd), &text),
+        Some(Cmd::History(args)) => history(&store_for(&cwd), args),
         Some(Cmd::Install(args)) => install(&cwd, args, true),
         Some(Cmd::Uninstall(args)) => install(&cwd, args, false),
         Some(Cmd::Hook { event }) => hook(event),
@@ -281,6 +318,9 @@ fn run(store: &Store, cwd: &Path, args: RunArgs) -> Result<ExitCode> {
         Some(prompt) => runner::run_for_prompt(&loaded.workflow, cwd, prompt),
         None => runner::run(&loaded.workflow, cwd),
     };
+    if let Err(err) = history_for(store).record(&report, args.prompt.as_deref()) {
+        eprintln!("hotword: history not recorded: {err:#}");
+    }
     if args.json {
         println!("{}", render_json(&report));
     } else {
@@ -391,6 +431,112 @@ fn edit(store: &Store, name: &str) -> Result<ExitCode> {
     Workflow::from_toml(&text)
         .with_context(|| format!("{} no longer parses", loaded.path.display()))?;
     println!("saved: {}", loaded.path.display());
+    Ok(ExitCode::SUCCESS)
+}
+
+fn history_for(store: &Store) -> History {
+    History::under(&store.user_dir, &home())
+}
+
+fn history(store: &Store, args: HistoryArgs) -> Result<ExitCode> {
+    let history = history_for(store);
+    match args.action {
+        Some(HistoryAction::Init) => {
+            history.init()?;
+            println!("history: {}", collapse_home(&history.dir));
+            println!("help[2]:");
+            println!("  Every `hotword run` and hook run is now a commit there");
+            println!(
+                "  Run `dolt remote add origin <url>` in that directory to share it with the team"
+            );
+            Ok(ExitCode::SUCCESS)
+        }
+        _ if !history.exists() => {
+            println!("history: not initialised");
+            println!(
+                "help: run `hotword history init` to start recording runs (needs dolt on PATH)"
+            );
+            Ok(ExitCode::SUCCESS)
+        }
+        Some(HistoryAction::Changes { workflow }) => {
+            let changes = history.changes(&workflow)?;
+            let runs = history.runs(Some(&workflow), 2)?;
+            if runs.len() < 2 {
+                println!("changes: fewer than two runs of {workflow} recorded");
+                return Ok(ExitCode::SUCCESS);
+            }
+            if changes.is_empty() {
+                println!("changes: 0 steps of {workflow} differ between the last two runs");
+                return Ok(ExitCode::SUCCESS);
+            }
+            println!("changes[{}]{{step,before,after,output}}:", changes.len());
+            for c in &changes {
+                println!(
+                    "  {},{},{},{}",
+                    c.name,
+                    c.before_status.as_deref().unwrap_or("-"),
+                    c.after_status.as_deref().unwrap_or("-"),
+                    if c.output_changed { "changed" } else { "same" }
+                );
+            }
+            for c in changes.iter().filter(|c| c.output_changed) {
+                println!();
+                println!("{}:", c.name);
+                for line in c.after.lines() {
+                    println!("  {line}");
+                }
+            }
+            Ok(ExitCode::SUCCESS)
+        }
+        None => {
+            let runs = history.runs(args.workflow.as_deref(), args.limit)?;
+            if runs.is_empty() {
+                println!("runs: 0 recorded");
+                return Ok(ExitCode::SUCCESS);
+            }
+            println!(
+                "runs[{}]{{workflow,started,host,ok,fail,skip,timeout,prompt}}:",
+                runs.len()
+            );
+            for r in &runs {
+                println!(
+                    "  {},{},{},{},{},{},{},{}",
+                    r.workflow,
+                    r.started,
+                    r.host,
+                    r.ok,
+                    r.fail,
+                    r.skip,
+                    r.timeout,
+                    r.prompt.as_deref().unwrap_or("-")
+                );
+            }
+            println!("help[2]:");
+            println!("  Run `hotword history changes <workflow>` to see what moved since the previous run");
+            println!(
+                "  Run `dolt log` or `dolt diff` in {} for the full story",
+                collapse_home(&history.dir)
+            );
+            Ok(ExitCode::SUCCESS)
+        }
+    }
+}
+
+fn save(store: &Store, project: bool) -> Result<ExitCode> {
+    let mut text = String::new();
+    std::io::stdin()
+        .read_to_string(&mut text)
+        .context("reading the workflow from stdin")?;
+    let workflow = Workflow::from_toml(&text)?;
+    let path = store.save(
+        &workflow,
+        if project {
+            Source::Project
+        } else {
+            Source::User
+        },
+    )?;
+    println!("saved: {}", path.display());
     Ok(ExitCode::SUCCESS)
 }
 
@@ -523,6 +669,13 @@ fn hook(event: HookEvent) -> Result<ExitCode> {
         .iter()
         .map(|w| runner::run_for_prompt(w, &cwd, prompt))
         .collect();
+    let history = history_for(&store);
+    for report in &reports {
+        let recorded = history.record(report, (!prompt.is_empty()).then_some(prompt));
+        if let Err(err) = recorded {
+            eprintln!("hotword: history not recorded: {err:#}");
+        }
+    }
     let context = reports
         .iter()
         .map(|r| render_text(r, false))

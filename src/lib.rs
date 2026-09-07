@@ -1,6 +1,8 @@
 pub mod cli;
+pub mod history;
 pub mod hooks;
 pub mod interactive;
 pub mod report;
 pub mod runner;
+pub mod ui;
 pub mod workflow;

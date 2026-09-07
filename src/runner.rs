@@ -68,7 +68,7 @@ const BUILTINS: &[&str] = &[
 ];
 
 pub fn run(workflow: &Workflow, base_dir: &Path) -> Report {
-    run_inner(workflow, base_dir, "", "")
+    run_inner(workflow, base_dir, "", "", &mut |_| {})
 }
 
 /// Like `run`, but steps also see the prompt that fired the workflow as
@@ -81,14 +81,41 @@ pub fn run_for_prompt(workflow: &Workflow, base_dir: &Path, prompt: &str) -> Rep
         .find(|t| workflow.matches_trigger(t, prompt))
         .cloned()
         .unwrap_or_default();
-    run_inner(workflow, base_dir, prompt, &trigger)
+    run_inner(workflow, base_dir, prompt, &trigger, &mut |_| {})
 }
 
-fn run_inner(workflow: &Workflow, base_dir: &Path, prompt: &str, trigger: &str) -> Report {
+/// Like `run_for_prompt`, calling `on_step` as each step finishes so a UI can
+/// show progress before the whole report exists.
+pub fn run_streaming(
+    workflow: &Workflow,
+    base_dir: &Path,
+    prompt: &str,
+    on_step: &mut dyn FnMut(&StepResult),
+) -> Report {
+    let trigger = workflow
+        .triggers
+        .iter()
+        .find(|t| workflow.matches_trigger(t, prompt))
+        .cloned()
+        .unwrap_or_default();
+    run_inner(workflow, base_dir, prompt, &trigger, on_step)
+}
+
+fn run_inner(
+    workflow: &Workflow,
+    base_dir: &Path,
+    prompt: &str,
+    trigger: &str,
+    on_step: &mut dyn FnMut(&StepResult),
+) -> Report {
     let steps = workflow
         .steps
         .iter()
-        .map(|step| run_step(step, workflow.timeout, base_dir, prompt, trigger))
+        .map(|step| {
+            let result = run_step(step, workflow.timeout, base_dir, prompt, trigger);
+            on_step(&result);
+            result
+        })
         .collect();
     Report {
         workflow: workflow.name.clone(),

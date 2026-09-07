@@ -142,3 +142,15 @@ fn steps_see_the_prompt_and_matched_trigger_in_the_environment() {
     let report = run(&workflow, std::env::temp_dir().as_path());
     assert_eq!(report.steps[0].output.trim(), "|");
 }
+
+#[test]
+fn streaming_reports_each_step_as_it_finishes() {
+    use hotword::runner::run_streaming;
+    let workflow = wf("[[steps]]\nname = \"one\"\nrun = \"echo 1\"\n[[steps]]\nname = \"two\"\nrun = \"echo 2\"\n");
+    let mut seen = Vec::new();
+    let report = run_streaming(&workflow, std::env::temp_dir().as_path(), "", &mut |s| {
+        seen.push(s.name.clone())
+    });
+    assert_eq!(seen, vec!["one", "two"]);
+    assert_eq!(report.steps.len(), 2);
+}

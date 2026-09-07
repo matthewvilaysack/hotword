@@ -409,3 +409,90 @@ fn list_json_is_machine_readable_for_other_front_ends() {
         "{plain}"
     );
 }
+
+#[test]
+fn save_reads_toml_from_stdin_validates_and_writes_it() {
+    let sb = Sandbox::new();
+    let toml = "name = \"from-app\"\ntriggers = [\"from app\"]\n\n[[steps]]\nname = \"hi\"\nrun = \"echo hi\"\n";
+    let output = sb.run_in(&sb.repo(), &["save"], Some(toml));
+    assert!(output.status.success(), "{}", out(&output));
+    let path = sb.home().join(".config/hotword/from-app.toml");
+    assert!(
+        out(&output).contains(&format!("saved: {}", path.display())),
+        "{}",
+        out(&output)
+    );
+    assert!(fs::read_to_string(&path).unwrap().contains("name = \"from-app\""));
+
+    let again = sb.run_in(
+        &sb.repo(),
+        &["save"],
+        Some(&toml.replace("echo hi", "echo again")),
+    );
+    assert!(again.status.success(), "save overwrites: {}", out(&again));
+    assert!(fs::read_to_string(&path).unwrap().contains("echo again"));
+
+    let bad = sb.run_in(&sb.repo(), &["save"], Some("name = \"Bad Name\"\n"));
+    assert_eq!(bad.status.code(), Some(1));
+    assert!(out(&bad).contains("error:"), "{}", out(&bad));
+    assert!(!sb.home().join(".config/hotword/Bad Name.toml").exists());
+}
+
+#[test]
+fn history_records_runs_once_initialised_and_lists_changes() {
+    if !hotword::runner::on_path("dolt") {
+        eprintln!("dolt not on PATH, skipping");
+        return;
+    }
+    let sb = Sandbox::new();
+    let marker = sb.dir.path().join("marker");
+    let step = format!("mark: cat {} 2>/dev/null || echo none", marker.display());
+    sb.run(&[
+        "add",
+        "repo-status",
+        "--trigger",
+        "repo status",
+        "--step",
+        &step,
+    ]);
+
+    let before = out(&sb.run(&["history"]));
+    assert!(before.contains("history: not initialised"), "{before}");
+    assert!(before.contains("hotword history init"), "{before}");
+
+    let init = sb.run(&["history", "init"]);
+    assert!(init.status.success(), "{}", out(&init));
+    assert!(sb.home().join(".config/hotword/history/.dolt").is_dir());
+
+    assert!(sb.run(&["run", "repo-status"]).status.success());
+    fs::write(&marker, "changed\n").unwrap();
+    let payload = format!(
+        r#"{{"prompt":"repo status please","cwd":"{}"}}"#,
+        sb.repo().display()
+    );
+    assert!(sb
+        .run_in(&sb.repo(), &["hook", "prompt"], Some(&payload))
+        .status
+        .success());
+
+    let listing = out(&sb.run(&["history"]));
+    assert!(
+        listing.contains("runs[2]{workflow,started,host,ok,fail,skip,timeout,prompt}:"),
+        "{listing}"
+    );
+    assert!(listing.contains("repo status please"), "{listing}");
+
+    let changes = out(&sb.run(&["history", "changes", "repo-status"]));
+    assert!(
+        changes.contains("changes[1]{step,before,after,output}:"),
+        "{changes}"
+    );
+    assert!(changes.contains("mark,ok,ok,changed"), "{changes}");
+    assert!(changes.contains("  changed\n"), "{changes}");
+
+    let none = out(&sb.run(&["history", "changes", "never-ran"]));
+    assert!(
+        none.contains("changes: fewer than two runs of never-ran recorded"),
+        "{none}"
+    );
+}
