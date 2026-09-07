@@ -207,6 +207,10 @@ fn draw_report(frame: &mut Frame, area: Rect, state: &State) {
             }
             (format!(" Report: {} ", l.workflow.name), text)
         }
+        Some(l) if state.doctor.contains_key(&l.workflow.name) => (
+            format!(" Doctor: {} ", l.workflow.name),
+            state.doctor[&l.workflow.name].clone(),
+        ),
         Some(l) => match state.report(&l.workflow.name) {
             Some(report) => (
                 format!(" Report: {} ", l.workflow.name),
@@ -232,21 +236,25 @@ fn draw_report(frame: &mut Frame, area: Rect, state: &State) {
     let lines: Vec<Line> = body
         .lines()
         .map(|line| {
-            let style =
-                if line.starts_with("hotword:") || line.ends_with(':') && !line.starts_with(' ') {
-                    theme::bright()
-                } else if line.contains(",fail,")
-                    || line.contains(",timeout,")
-                    || line.contains("(exit ")
-                {
-                    theme::signal()
-                } else if line.trim_start().starts_with("fix:") || line.starts_with("start with:") {
-                    theme::key()
-                } else if line.starts_with("help:") || line.contains("skipped,") {
-                    theme::dim()
-                } else {
-                    Style::default().fg(theme::FG)
-                };
+            let style = if line.starts_with("hotword:")
+                || line.starts_with("doctor:")
+                || line.ends_with(':') && !line.starts_with(' ')
+            {
+                theme::bright()
+            } else if line.contains(",fail,")
+                || line.contains(",timeout,")
+                || line.contains("(exit ")
+            {
+                theme::signal()
+            } else if line.trim_start().starts_with("fix:") || line.starts_with("start with:") {
+                theme::key()
+            } else if line.trim_start().starts_with("fix:") || line.starts_with("start with:") {
+                theme::key()
+            } else if line.starts_with("help:") || line.contains("skipped,") {
+                theme::dim()
+            } else {
+                Style::default().fg(theme::FG)
+            };
             Line::from(Span::styled(line.to_string(), style))
         })
         .collect();
@@ -295,6 +303,7 @@ fn draw_footer(frame: &mut Frame, area: Rect, state: &State) {
                     ("p", "prompt"),
                     ("/", "filter"),
                     ("e", "edit"),
+                    ("d", "doctor"),
                     ("R", "refresh"),
                     ("tab", "panel"),
                     ("j/k", "move"),
@@ -331,6 +340,7 @@ fn draw_help(frame: &mut Frame, area: Rect) {
         ("tab, l / h", "next / previous panel"),
         ("enter", "run the selected workflow"),
         ("p", "run it with a prompt (HOTWORD_PROMPT)"),
+        ("d", "doctor: explain the last run's failures, with fixes"),
         ("d", "doctor: explain the last run's failures, with fixes"),
         ("/", "filter by name or phrase"),
         ("e", "open the workflow file in $EDITOR"),
