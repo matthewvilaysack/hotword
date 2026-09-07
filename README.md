@@ -1,5 +1,7 @@
 # hotword
 
+![hotword: say the phrase, the shell runs first](site/banner.png)
+
 Type a phrase to your coding agent and a workflow of shell commands runs, with the results dropped into the agent's context before it answers.
 Say "apple check status" and the agent already knows the CLI version, the auth state, the unpushed commits, and the open PRs, instead of spending five tool calls finding out.
 
@@ -148,6 +150,16 @@ A step that passes its timeout is killed along with anything it started.
 
 `hotword hook session-start` does the same for workflows with `on = ["session-start"]`.
 Both read the `cwd` field from the payload to find the repo's `.hotword/`, stay under the 10,000 character context cap the agents enforce, and never block the prompt: any problem goes to stderr and the exit code stays 0.
+
+## Where this started
+
+It began as hook hacking.
+Claude Code exposes a small lifecycle, documented in the [hooks reference](https://code.claude.com/docs/en/hooks): a shell command gets JSON on stdin when a session starts or a prompt is submitted, and whatever it prints as `additionalContext` lands in the model's context before the next request.
+The first version was a bash script matched on the word "apple" that opened a dashboard.
+The interesting part turned out to be the shape underneath: a phrase is a cheap, honest trigger, and a hook that runs deterministic commands puts facts in front of the agent instead of making it guess.
+hotword is that pattern made reusable, with the hook contract handled once so a workflow is only the phrase and the steps.
+
+Reference: [Claude Code hooks](https://code.claude.com/docs/en/hooks). Codex uses the same shape; its guide is at [learn.chatgpt.com/docs/hooks](https://learn.chatgpt.com/docs/hooks).
 
 ## Develop
 

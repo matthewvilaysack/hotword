@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-label="hotword: say the phrase, the shell runs first">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0a1b5c"/>
+      <stop offset="0.42" stop-color="#3b1f8f"/>
+      <stop offset="0.66" stop-color="#7a2ea8"/>
+      <stop offset="0.86" stop-color="#e2572a"/>
+      <stop offset="1" stop-color="#ff8a1f"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.82" cy="0.9" r="0.6">
+      <stop offset="0" stop-color="#ffb347" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ffb347" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="deep" cx="0.1" cy="0.1" r="0.7">
+      <stop offset="0" stop-color="#061043" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#061043" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="scan" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="1" fill="#000" fill-opacity="0.16"/>
+    </pattern>
+    <clipPath id="sliceA"><rect x="0" y="228" width="1280" height="26"/></clipPath>
+    <clipPath id="sliceB"><rect x="0" y="318" width="1280" height="14"/></clipPath>
+    <clipPath id="sliceC"><rect x="0" y="372" width="1280" height="34"/></clipPath>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#sky)"/>
+  <rect width="1280" height="640" fill="url(#deep)"/>
+  <rect width="1280" height="640" fill="url(#glow)"/>
+  <rect width="1280" height="640" fill="url(#scan)"/>
+
+  <g font-family="'Big Shoulders Display', 'Arial Narrow', Impact, sans-serif" font-weight="900" font-size="300" letter-spacing="-3">
+    <text x="88" y="400" fill="#ffd9a3" opacity="0.9" transform="translate(-14 0)" clip-path="url(#sliceA)">hotword</text>
+    <text x="88" y="400" fill="#9ad0ff" opacity="0.9" transform="translate(18 0)" clip-path="url(#sliceB)">hotword</text>
+    <text x="88" y="400" fill="#ffd9a3" opacity="0.9" transform="translate(10 0)" clip-path="url(#sliceC)">hotword</text>
+    <text x="88" y="400" fill="#f6f2ff">hotword</text>
+  </g>
+
+  <g font-family="'IBM Plex Mono', Menlo, monospace" fill="#f6f2ff">
+    <text x="92" y="470" font-size="30">Say the phrase. The shell runs first.</text>
+    <text x="92" y="520" font-size="20" fill-opacity="0.78">Phrase-triggered and session-start workflows for terminal coding agents.</text>
+  </g>
+
+  <g font-family="'IBM Plex Mono', Menlo, monospace" font-size="20" fill="#f6f2ff" fill-opacity="0.85">
+    <text x="92" y="586">$ claude  &gt;  <tspan fill="#ffb347" fill-opacity="1">review pr 42</tspan></text>
+    <text x="1188" y="586" text-anchor="end">github.com/matthewvilaysack/hotword</text>
+  </g>
+</svg>

@@ -1,5 +1,9 @@
 # Design
 
+## Origin
+
+A bash UserPromptSubmit hook matched on one word, written while reading the [Claude Code hooks reference](https://code.claude.com/docs/en/hooks). The contract there (JSON in on stdin, `additionalContext` out on stdout, a 10,000 character cap, exit 2 blocks) is the whole surface this tool builds on.
+
 ## Problem
 
 Every "check status" question to a coding agent costs a round of guessing: which commands exist, which repo to look in, which environment. The agent spends several tool calls and a chunk of context rediscovering facts a shell one-liner already knows, and each engineer on a team rediscovers them separately.
