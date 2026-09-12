@@ -7,6 +7,7 @@ import { marked } from "marked";
 const PAGES = [
   { slug: "index", file: "README.md", title: "Docs" },
   { slug: "design", file: "docs/design.md", title: "Design" },
+  { slug: "sharing", file: "docs/sharing.md", title: "Sharing workflows" },
   { slug: "releasing", file: "docs/releasing.md", title: "Releasing" },
   { slug: "changelog", file: "CHANGELOG.md", title: "Changelog" },
   { slug: "agents", file: "AGENTS.md", title: "Agent brief" },
